@@ -3,15 +3,17 @@
 from vyper.interfaces import ERC721
 
 event Offer:
+    wanted_owner: indexed(address)
     wanted_contract: indexed(address)
-    wanted_token_id: indexed(uint256)
     offer_contract: indexed(address)
+    wanted_token_id: uint256
     offer_token_id: uint256
 
 event Accept:
+    offer_owner: indexed(address)
     wanted_contract: indexed(address)
-    wanted_token_id: indexed(uint256)
     offer_contract: indexed(address)
+    wanted_token_id: uint256
     offer_token_id: uint256
 
 VERSION: constant(uint256) = 1
@@ -134,6 +136,7 @@ def signer(
 
 
 @external
+@nonreentrant('offer')
 def offer(
     offer_contract: address,
     offer_token_id: uint256,
@@ -155,16 +158,26 @@ def offer(
         signature
     )
 
+    wanted_owner: address = ERC721(wanted_contract).ownerOf(wanted_token_id)
+
+    assert wanted_owner != empty(address), "no-wanted-owner"
     assert self.offers[param_hash] == empty(address), "offer-exists"
     assert signer == ERC721(offer_contract).ownerOf(offer_token_id), "signer-not-owner"
     assert self == ERC721(offer_contract).getApproved(offer_token_id), "contract-not-approved"
 
     self.offers[param_hash] = signer
 
-    log Offer(wanted_contract, wanted_token_id, offer_contract, offer_token_id)
+    log Offer(
+        wanted_owner,
+        wanted_contract,
+        offer_contract,
+        wanted_token_id,
+        offer_token_id
+    )
 
 
 @external
+@nonreentrant('accept')
 def accept(
     offer_contract: address,
     offer_token_id: uint256,
@@ -211,4 +224,10 @@ def accept(
         empty(Bytes[1])
     )
 
-    log Accept(wanted_contract, wanted_token_id, offer_contract, offer_token_id)
+    log Accept(
+        offer_owner,
+        wanted_contract,
+        offer_contract,
+        wanted_token_id,
+        offer_token_id
+    )
