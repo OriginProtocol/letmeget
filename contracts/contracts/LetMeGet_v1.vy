@@ -81,21 +81,6 @@ def _pack_offer(
         convert(wanted_token_id, bytes32)
     )
 
-@external
-@view
-def pack_offer(
-    offer_contract: address,
-    offer_token_id: uint256,
-    wanted_contract: address,
-    wanted_token_id: uint256
-) -> Bytes[128]:
-    return self._pack_offer(
-        offer_contract,
-        offer_token_id,
-        wanted_contract,
-        wanted_token_id
-    )
-
 @internal
 @view
 def _hash_offer(
@@ -111,21 +96,6 @@ def _hash_offer(
         wanted_token_id
     )
     return keccak256(packed)
-
-@external
-@view
-def hash_offer(
-    offer_contract: address,
-    offer_token_id: uint256,
-    wanted_contract: address,
-    wanted_token_id: uint256
-) -> bytes32:
-    return self._hash_offer(
-        offer_contract,
-        offer_token_id,
-        wanted_contract,
-        wanted_token_id
-    )
 
 @internal
 @view

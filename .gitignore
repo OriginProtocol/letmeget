@@ -1,4 +1,9 @@
+# Python build garbage
 *.egg-info
 __pycache__
 
+# Brownie build stuff
 contracts/build
+
+# Sublime Text files
+*.sublime-*

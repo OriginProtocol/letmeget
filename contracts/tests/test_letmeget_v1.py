@@ -5,7 +5,6 @@ from eth_account.messages import defunct_hash_message
 from web3 import Web3
 from brownie import (
     LetMeGet_v1,
-    LetMeGet_sol_v1,
     ApesMock,
     RatsMock,
     accounts,
@@ -85,11 +84,6 @@ def signers():
 
 
 @pytest.fixture
-def letmegetv1sol():
-    return accounts[0].deploy(LetMeGet_sol_v1)
-
-
-@pytest.fixture
 def letmegetv1():
     return accounts[0].deploy(LetMeGet_v1)
 
@@ -136,7 +130,7 @@ def test_offer_cannot_complete(apes, rats, letmegetv1):
     ), "Offer has not been made yet"
 
 
-def test_signature_works(web3, signers, apes, rats, letmegetv1, letmegetv1sol):
+def test_signature_works(web3, signers, apes, rats, letmegetv1):
     """ LMG contract hash and sign messages properly """
     bruce = signers[0]
 
