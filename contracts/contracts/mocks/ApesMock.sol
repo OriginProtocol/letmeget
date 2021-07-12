@@ -17,4 +17,8 @@ contract ApesMock is ERC721 {
         _mint(msg.sender, 9);
         _mint(msg.sender, 10);
     }
+
+    function _baseURI() internal view override returns (string memory) {
+        return "ipfs://QmeSjSinHpPnmXmspMjwiXyN6zS4E9zccariGR3jxcaWtq/";
+    }
 }
