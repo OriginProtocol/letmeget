@@ -5,5 +5,8 @@ __pycache__
 # Brownie build stuff
 contracts/build
 
+# JS junk
+frontend/node_modules/
+
 # Sublime Text files
 *.sublime-*

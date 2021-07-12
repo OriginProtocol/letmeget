@@ -1,0 +1,23 @@
+.nft-container {
+  padding: 1;
+
+  .nft-art {
+    margin: 2rem 0;
+
+    img {
+      display: block;
+      margin: 0 auto;
+    }
+  }
+
+  .nft-meta {
+    margin: 1rem 1rem;
+
+    .nft-name {
+      font-size: 1.5rem;
+    }
+    .nft-descrtiption {
+      font-size: 0.75rem;
+    }
+  }
+}

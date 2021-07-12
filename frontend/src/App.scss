@@ -1,0 +1,22 @@
+/*@font-face {
+  font-family: 'Rubik-Regular';
+  src: local('Rubik-Regular'), url(static/fonts/Rubik-Regular.ttf) format('ttf');
+}*/
+
+html {
+    background-color: #FFFFFF;
+}
+
+body {
+    margin: 0;
+    /*font-family: "Rubik", sans-serif;*/
+    font-size: 1rem;
+    color:  #000;
+}
+
+button {
+    cursor: pointer;
+    background: #00357F;
+    color: #C7DDFC;
+    border: 0 #54BF66 solid;
+}
