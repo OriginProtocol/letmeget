@@ -1,5 +1,5 @@
 import { Provider } from "@ethersproject/abstract-provider"
-import React, { ReactElement } from "react"
+import React, { useEffect, ReactElement, ChangeEvent } from "react"
 import Paper from "@material-ui/core/Paper"
 import TextField from "@material-ui/core/TextField"
 import Alert from "@material-ui/lab/Alert"
@@ -23,21 +23,31 @@ const EXAMPLE_TOKEN_REFS = [
 interface TokenSelectorProps {
   side: TradeSide
   provider: Provider
+  defaultValue: string
+  setDefault: (v: any) => void
+  setAddress: (address: string) => void
+  setID: (id: number) => void
 }
 
 export default function TokenSelector(props: TokenSelectorProps): ReactElement {
-  const { error, tokenMeta, setTokenReference } = useERC721Metadata(
-    props.provider,
-    {
+  const { setAddress, setID, side, provider, setDefault, defaultValue } = props
+  const { error, tokenAddress, tokenID, tokenMeta, setTokenReference } =
+    useERC721Metadata(provider, {
       image:
-        props.side === TradeSide.Offer
-          ? DEFAULT_OFFER_IMAGE
-          : DEFAULT_WANTED_IMAGE,
-    }
-  )
+        side === TradeSide.Offer ? DEFAULT_OFFER_IMAGE : DEFAULT_WANTED_IMAGE,
+    })
 
-  const label = `${props.side === TradeSide.Offer ? "Offered" : "Wanted"} NFT`
-  const placeholder = EXAMPLE_TOKEN_REFS[props.side === TradeSide.Offer ? 0 : 1]
+  useEffect(() => {
+    setAddress(tokenAddress)
+    setID(tokenID)
+  }, [tokenAddress, tokenID])
+
+  useEffect(() => {
+    setTokenReference(defaultValue)
+  }, [defaultValue])
+
+  const label = `${side === TradeSide.Offer ? "Offered" : "Wanted"} NFT`
+  const placeholder = EXAMPLE_TOKEN_REFS[side === TradeSide.Offer ? 0 : 1]
   console.log("tokenMeta:", tokenMeta)
   return (
     <Paper className="token-selector">
@@ -47,7 +57,11 @@ export default function TokenSelector(props: TokenSelectorProps): ReactElement {
         label={label}
         placeholder={placeholder}
         variant="outlined"
-        onChange={setTokenReference}
+        onChange={(ev: ChangeEvent<HTMLInputElement>) => {
+          setTokenReference(ev.target.value)
+          setDefault(ev.target.value)
+        }}
+        defaultValue={defaultValue}
       />
       {error ? <Alert severity="error">{error}</Alert> : null}
     </Paper>

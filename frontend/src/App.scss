@@ -4,19 +4,60 @@
 }*/
 
 html {
-    background-color: #FFFFFF;
+  background-color: #ffffff;
 }
 
 body {
-    margin: 0;
-    /*font-family: "Rubik", sans-serif;*/
-    font-size: 1rem;
-    color:  #000;
+  margin: 0;
+  /*font-family: "Rubik", sans-serif;*/
+  font-size: 1rem;
+  color: #000;
 }
 
 button {
-    cursor: pointer;
-    background: #00357F;
-    color: #C7DDFC;
-    border: 0 #54BF66 solid;
+  cursor: pointer;
+  background: #00357f;
+  color: #c7ddfc;
+  border: 0 #54bf66 solid;
+}
+
+.trade-display {
+  .make-offer-container {
+    text-align: center;
+    svg.make-offer,
+    button.make-offer {
+      margin-top: 200px;
+    }
+    svg.make-offer {
+      width: 75%;
+      height: auto;
+    }
+  }
+}
+
+.make-offer-steps {
+  list-style-type: none;
+  width: 400px;
+  padding: 0;
+
+  li {
+    margin-bottom: 1rem;
+    display: inline-block;
+
+    div {
+      float: left;
+      height: 2.25rem;
+    }
+
+    .label {
+      width: 250px;
+    }
+
+    .controls {
+      width: 150px;
+      button {
+        width: 10px;
+      }
+    }
+  }
 }

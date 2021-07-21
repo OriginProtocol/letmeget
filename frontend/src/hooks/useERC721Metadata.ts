@@ -8,7 +8,9 @@ import { translateIPFSURI, translateIPFSMetadata } from "../utils/ipfs"
 
 interface ERC721HookReturn {
   tokenMeta?: NFTArtProps
-  setTokenReference: ChangeEventHandler
+  tokenAddress?: string
+  tokenID?: number
+  setTokenReference: (ref: string) => void
   error: string
 }
 
@@ -32,62 +34,34 @@ const RARIBLE_PATTERN =
 // Attempt to match generally
 const BASIC_PATTERN = /(0x[A-Fa-f0-9]{40})[:/]{1}([0-9]+)$/
 
-function parseRef(tokenRef: string) {
+function parseRef(tokenRef: string): [string, number] {
   const parts = tokenRef.match(BASIC_PATTERN)
-  console.log("parts:", parts)
+
   if (parts) {
-    return [parts[1], parts[2]]
+    return [parts[1], parts[2] ? parseInt(parts[2]) : null]
   }
-  /*if (tokenRef.includes("opensea.io")) {
-    if (!parts) {
-      throw new Error("Invalid OpenSea token URI")
-    }
-    return [parts[2], parts[3]]
-  } else if (tokenRef.includes("rarible.com")) {
-    const parts = tokenRef.match(RARIBLE_PATTERN)
-    if (!parts) {
-      throw new Error("Invalid Rarible token URI")
-    }
-    return [parts[2], parts[3]]
-  } else if (tokenRef.match(BASIC_PATTERN)) {
-    const parts = tokenRef.match(BASIC_PATTERN)
-    return [parts[2], parts[3]]
-  }*/
 
   throw new Error("Unknown token URI")
 }
 
-async function loadMetaFromRef(provider: Provider, tokenRef: string) {
-  console.log("loadMetaFromRef()", provider, tokenRef)
-  const [address, tokenId] = parseRef(tokenRef)
-  console.log("DEBUGDEBUGDEBUGDEBUGDEBUG")
-  console.log("token:", address, tokenId)
+async function loadMeta(provider: Provider, address: string, tokenID: number) {
   const contract = new ethers.Contract(address, ERC721_ABI, provider)
 
-  console.debug(`tokenURI(${tokenId})`)
-  console.debug(`contract:`, contract)
-
-  let tokenURI = await contract.tokenURI(tokenId)
-  //.catch((err: Error) => console.error(err))
-  //const tokenURI = await contract.functions.tokenURI(tokenId)
-  console.log("-DEBUGDEBUGDEBUGDEBUGDEBUG")
+  let tokenURI = await contract.tokenURI(tokenID)
 
   if (!tokenURI) {
-    console.warn(`No Token URI for ref ${tokenRef}`)
+    console.warn(`No Token URI for ref ${address}:${tokenID}`)
     return null
   }
 
   // Translate IPFS URIs
-  console.log("tokenURI:", typeof tokenURI, tokenURI)
   if (tokenURI.includes("ipfs")) {
     tokenURI = translateIPFSURI(tokenURI)
   }
 
-  console.log(`Fetching metadata for ${address}:${tokenId} from ${tokenURI}`)
+  console.log(`Fetching metadata for ${address}:${tokenID} from ${tokenURI}`)
 
-  // TODO: Review the no-cors mode here
   const resp = await fetch(tokenURI, {
-    // mode: "no-cors"
     headers: {
       Accept: "application/json",
     },
@@ -105,24 +79,31 @@ export default function useERC721Metadata(
   defaults: NFTArtProps = {}
 ): ERC721HookReturn {
   const [tokenRef, setTokenRef] = useState(null)
+  const [tokenAddress, setTokenAddress] = useState(null)
+  const [tokenID, setTokenID] = useState(null)
   const [error, setError] = useState(null)
   const [tokenMeta, setTokenMeta] = useState({
     ...DEFAULT_ERC721_META,
     ...defaults,
   })
 
-  function setTokenReference(ev: ChangeEvent<HTMLInputElement>): void {
-    console.log("setTokenReference()", ev.target.value)
-    setTokenRef(ev.target.value)
+  function setTokenReference(ref: string): void {
+    console.log("setTokenReference()", ref)
+    setTokenRef(ref)
   }
 
   useEffect(() => {
     if (provider && tokenRef) {
-      loadMetaFromRef(provider, tokenRef)
+      console.log("parseRef-")
+      const [address, id] = parseRef(tokenRef)
+      console.log("-parseRef", address, id)
+      setTokenAddress(address)
+      setTokenID(id)
+      loadMeta(provider, address, id)
         .then((meta: NFTArtProps) => setTokenMeta(meta))
         .catch((err) => setError(err.toString()))
     }
   }, [provider, tokenRef])
 
-  return { tokenMeta, setTokenReference, error }
+  return { tokenAddress, tokenID, tokenMeta, setTokenReference, error }
 }

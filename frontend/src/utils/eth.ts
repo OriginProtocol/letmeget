@@ -1,4 +1,4 @@
-import { ethers, ContractInterface } from "ethers"
+import { ethers, ContractInterface, Contract } from "ethers"
 import { Provider } from "@ethersproject/abstract-provider"
 import { Signer } from "@ethersproject/abstract-signer"
 import { KeyValue } from "../interfaces.d"
@@ -16,7 +16,7 @@ export interface EthereumContext {
   provider: Provider
   signer?: Signer
   accounts: Array<string>
-  letMeGetv1?: ethers.Contract
+  letMeGetv1?: Contract
   success: boolean
   error: string
 }
@@ -602,8 +602,8 @@ export async function getProvider(networkId: string): Promise<EthereumContext> {
   // Contracts
   const lmgAddress: string = artifacts?.LetMeGet_v1?.deployment?.address
   const lmgABI: ContractInterface = artifacts?.LetMeGet_v1?.abi
-  const letMeGetv1: ethers.Contract = lmgAddress
-    ? new ethers.Contract(lmgAddress, lmgABI, signer)
+  const letMeGetv1: Contract = lmgAddress
+    ? new Contract(lmgAddress, lmgABI, signer)
     : null
 
   console.debug("LetMeGetV1:", letMeGetv1)
