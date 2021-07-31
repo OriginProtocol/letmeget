@@ -1,3 +1,4 @@
+import os
 import json
 import shutil
 from pathlib import Path
@@ -7,8 +8,9 @@ CHAIN_ID = 1337
 
 
 def deploy_mocks(deployer):
-    apes = ApesMock.deploy({"from": deployer})
-    rats = RatsMock.deploy({"from": deployer})
+    params = {"from": deployer, "required_confs": 1, "gas_price": int(1e9)}
+    apes = ApesMock.deploy(params)
+    rats = RatsMock.deploy(params)
     return (apes, rats)
 
 
@@ -70,3 +72,25 @@ def main():
     copy_artifact(apes.address)
     copy_artifact(rats.address)
     copy_artifact(lmg.address)
+
+    if os.environ.get("NFT_OWNER"):
+        owner = os.environ.get("NFT_OWNER")
+        # Each mock should've minted 10 NFTs
+        tx_params = {
+            "required_confs": 0,
+            "gas_limit": 75000,
+            "gas_price": int(1e9),
+        }
+
+        for i in range(1, 11):
+            print("Transferring Ape #{} to {}".format(i, owner))
+            apes.transferFrom(deployer, owner, i, tx_params)
+            print("Transferring Rat #{} to {}".format(i, owner))
+            rats.transferFrom(deployer, owner, i, tx_params)
+
+    print("\n\nDeployed Contracts")
+    print("------------------")
+    print("Apes Mock: {}".format(apes.address))
+    print("Rats Mock: {}".format(rats.address))
+    print("LetMeGet_v1: {}".format(lmg.address))
+    print("------------------\n\n")
