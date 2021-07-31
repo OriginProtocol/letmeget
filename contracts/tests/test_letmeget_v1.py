@@ -15,7 +15,7 @@ ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 PREFIX = b"\x19Ethereum Signed Message:\n32"
 
 
-def normalize_offer(
+def normalize_signed_data(
     offer_contract, offer_token_id, wanted_contract, wanted_token_id
 ):
     return [
@@ -24,21 +24,6 @@ def normalize_offer(
         Web3.toBytes(to_bytes(hexstr=wanted_contract)).rjust(32, b"\0"),
         Web3.toBytes(wanted_token_id).rjust(32, b"\0"),
     ]
-
-
-def pack_offer(
-    offer_contract, offer_token_id, wanted_contract, wanted_token_id
-):
-    return to_hex(
-        b"".join(
-            [
-                Web3.toBytes(to_bytes(hexstr=offer_contract)).rjust(32, b"\0"),
-                Web3.toBytes(offer_token_id).rjust(32, b"\0"),
-                Web3.toBytes(to_bytes(hexstr=wanted_contract)).rjust(32, b"\0"),
-                Web3.toBytes(wanted_token_id).rjust(32, b"\0"),
-            ]
-        )
-    )
 
 
 def hash_message(offer_hash):
@@ -53,22 +38,28 @@ def hash_params(
 ):
     return Web3.solidityKeccak(
         ["bytes32", "bytes32", "bytes32", "bytes32"],
-        normalize_offer(
+        normalize_signed_data(
             offer_contract, offer_token_id, wanted_contract, wanted_token_id
         ),
     )
 
 
 def sign_offer(
-    account, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+    account,
+    offer_contract,
+    offer_token_id,
+    wanted_contract,
+    wanted_token_id,
 ) -> (str, str):
     """ Sign offer data with given account """
     acc = Account.from_key(account.private_key)
     offer_hash = hash_params(
-        offer_contract, offer_token_id, wanted_contract, wanted_token_id
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
     )
     prefixed_offer_hash = defunct_hash_message(offer_hash)
-    # prefixed_offer_hash2 = hash_message(offer_hash)
 
     signed = acc.signHash(prefixed_offer_hash)
     return signed.signature.hex(), prefixed_offer_hash, offer_hash
@@ -139,10 +130,11 @@ def test_signature_works(web3, signers, apes, rats, letmegetv1):
     )
     signer = Account.recoverHash(message_hash, signature=signature)
 
-    contract_signer, _ = letmegetv1.signer(
+    contract_signer, contract_hash = letmegetv1.offer_signer(
         apes.address, 1, rats.address, 1, signature
     )
 
+    assert contract_hash == to_hex(offer_hash), "hash mismatch"
     assert signer == bruce.address, "Local sig check failed"
     assert signer == contract_signer, "Invalid sig"
 
@@ -189,7 +181,7 @@ def test_offer_fails_if_not_approved(web3, signers, apes, rats, letmegetv1):
 
     transfer_token(apes, accounts[0], bruce.address, offer_token_id)
 
-    contract_signer, _ = letmegetv1.signer(
+    contract_signer, _ = letmegetv1.offer_signer(
         apes.address, 1, rats.address, 1, signature
     )
     assert apes.ownerOf(1) == bruce.address, "Transfer not completed"
@@ -249,7 +241,11 @@ def test_accept_fails_if_no_offer(web3, signers, apes, rats, letmegetv1):
     wanted_token_id = 2
 
     signature, _, _ = sign_offer(
-        dandi, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+        dandi,
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
     )
 
     with reverts("offer-does-not-exist"):
@@ -297,7 +293,11 @@ def test_accept_fails_if_not_owner(signers, apes, rats, letmegetv1):
 
     # Create offer signature
     accept_signature, _, _ = sign_offer(
-        dandi, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+        dandi,
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
     )
 
     with reverts("signer-not-owner"):
@@ -326,7 +326,6 @@ def test_accept_fails_if_not_approved(signers, apes, rats, letmegetv1):
 
     # Approve LMG contract
     approve(apes, bruce.address, letmegetv1.address, offer_token_id)
-    # approve(rats, dandi.address, letmegetv1.address, wanted_token_id)
 
     # Create offer signature
     offer_signature, _, _ = sign_offer(
@@ -347,10 +346,79 @@ def test_accept_fails_if_not_approved(signers, apes, rats, letmegetv1):
 
     # Create offer signature
     accept_signature, _, _ = sign_offer(
-        dandi, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+        dandi,
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
     )
 
     with reverts("contract-not-approved"):
+        letmegetv1.accept(
+            offer_contract,
+            offer_token_id,
+            wanted_contract,
+            wanted_token_id,
+            accept_signature,
+            {"from": dandi},
+        )
+
+
+def test_accept_fails_if_revoke(signers, apes, rats, letmegetv1):
+    """ Test that a trade failed if offer was revoked """
+    bruce = signers[0]
+    dandi = signers[1]
+    offer_contract = apes.address
+    offer_token_id = 6
+    wanted_contract = rats.address
+    wanted_token_id = 7
+
+    # Fund users
+    transfer_token(apes, accounts[0], bruce.address, offer_token_id)
+    transfer_token(rats, accounts[0], dandi.address, wanted_token_id)
+
+    # Approve LMG contract
+    approve(apes, bruce.address, letmegetv1.address, offer_token_id)
+
+    # Create offer signature
+    offer_signature, _, _ = sign_offer(
+        bruce, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+    )
+
+    offer_tx = letmegetv1.offer(
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
+        offer_signature,
+        {"from": bruce},
+    )
+    offer_tx.wait(1)
+
+    assert offer_tx.status == 1, "Offer tx failed"
+
+    revoke_tx = letmegetv1.revoke(
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
+        offer_signature,
+        {"from": bruce},
+    )
+    offer_tx.wait(1)
+
+    assert offer_tx.status == 1, "Offer tx failed"
+
+    # Create offer signature
+    accept_signature, _, _ = sign_offer(
+        dandi,
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
+    )
+
+    with reverts("offer-revoked"):
         letmegetv1.accept(
             offer_contract,
             offer_token_id,
@@ -398,7 +466,11 @@ def test_accept_succeeds(signers, apes, rats, letmegetv1):
 
     # Create offer signature
     accept_signature, _, _ = sign_offer(
-        dandi, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+        dandi,
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
     )
 
     accept_tx = letmegetv1.accept(
