@@ -1,39 +1,28 @@
 import every from "lodash/every"
-import React, { useState, useEffect, MouseEvent, ReactElement } from "react"
-import { ethers, Contract, utils } from "ethers"
+import React, { useState, useEffect, ReactElement } from "react"
+import { Contract, utils } from "ethers"
 import { Signer } from "@ethersproject/abstract-signer"
 import {
   Button,
-  Checkbox,
   Dialog,
-  DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   CircularProgress,
-  IconButton,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemSecondaryAction,
-  ListItemText,
-  ListSubheader,
-  Modal,
   Typography,
 } from "@material-ui/core"
 import Alert from "@material-ui/lab/Alert"
 import ThumbUpIcon from "@material-ui/icons/ThumbUp"
 
-import ActionDialog from "./ActionDialog"
 import hashOffer from "../utils/hashOffer"
 import { ZERO_ADDRESS } from "../utils/eth"
 
-const { hexConcat, keccak256, arrayify } = utils
+const { arrayify } = utils
 
 function remove0xPrefix(v: string): string {
   return v.startsWith("0x") ? v.slice(2) : v
 }
 
+/* ethers.js prefixes itself, leaving for future reference
 function prefixMessage(msg: string): string {
   // 32 byte message
   //return `\x19Ethereum Signed Message:\n32${msg}`
@@ -41,7 +30,7 @@ function prefixMessage(msg: string): string {
   return `0x19457468657265756d205369676e6564204d6573736167653a0a3332${remove0xPrefix(
     msg
   )}`
-}
+}*/
 
 interface OfferProps {
   open: boolean
@@ -54,8 +43,6 @@ interface OfferProps {
   wantedTokenID: number
   onSuccess: () => void
 }
-
-const progressStyle = { height: "20", width: "20" }
 
 export default function Offer(props: OfferProps): ReactElement {
   const [error, setError] = useState(null)

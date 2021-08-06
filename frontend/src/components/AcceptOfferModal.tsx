@@ -1,47 +1,25 @@
 import every from "lodash/every"
-import React, { useState, useEffect, MouseEvent, ReactElement } from "react"
-import { ethers, Contract, utils } from "ethers"
+import React, { useState, useEffect, ReactElement } from "react"
+import { Contract, utils } from "ethers"
 import { Signer } from "@ethersproject/abstract-signer"
 import {
   Button,
-  Checkbox,
   Dialog,
-  DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   CircularProgress,
-  IconButton,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemSecondaryAction,
-  ListItemText,
-  ListSubheader,
-  Modal,
   Typography,
 } from "@material-ui/core"
 import Alert from "@material-ui/lab/Alert"
 import ThumbUpIcon from "@material-ui/icons/ThumbUp"
 
 import hashOffer from "../utils/hashOffer"
-import { ZERO_ADDRESS } from "../utils/eth"
 import { Offer } from "../interfaces"
-import ActionDialog from "./ActionDialog"
 
-const { hexConcat, keccak256, arrayify } = utils
+const { arrayify } = utils
 
 function remove0xPrefix(v: string): string {
   return v.startsWith("0x") ? v.slice(2) : v
-}
-
-function prefixMessage(msg: string): string {
-  // 32 byte message
-  //return `\x19Ethereum Signed Message:\n32${msg}`
-  // String prefix in hex without length: 0x19457468657265756d205369676e6564204d6573736167653a0a33
-  return `0x19457468657265756d205369676e6564204d6573736167653a0a3332${remove0xPrefix(
-    msg
-  )}`
 }
 
 interface AcceptOfferModalProps {
@@ -55,8 +33,6 @@ interface AcceptOfferModalProps {
   wantedTokenID: number
   onSuccess: () => void
 }
-
-const progressStyle = { height: "20", width: "20" }
 
 export default function AcceptOfferModal(
   props: AcceptOfferModalProps
@@ -77,12 +53,12 @@ export default function AcceptOfferModal(
     onSuccess,
   } = props
 
-  const haveNecessaryProps = every([
+  /*const haveNecessaryProps = every([
     offerContract,
     offerTokenID,
     wantedContract,
     wantedTokenID,
-  ])
+  ])*/
 
   function getApproved(): Promise<void> {
     return wantedContract
@@ -123,10 +99,6 @@ export default function AcceptOfferModal(
     setPendingApprove(false)
   }
 
-  function onCancelApprove() {
-    close()
-  }
-
   async function onAccept() {
     setPendingAccept(true)
 
@@ -149,32 +121,6 @@ export default function AcceptOfferModal(
       setPendingAccept(false)
       return
     }
-
-    /*try {
-      // TODO: Verify hash of prefixed message
-      // TODO: Check our own ethereum stackexchange history for this?
-      const [contractSigner, contractHash] = await letMeGetv1
-        .connect(signer)
-        .functions.offer_signer(
-          offerContract.address,
-          offerTokenID,
-          wantedContract.address,
-          wantedTokenID,
-          signature
-        )
-      const saddress = await signer.getAddress()
-
-      if (contractSigner !== saddress) {
-        setError("Unexpected signer")
-        setPendingOffer(false)
-        return
-      }
-    } catch (err) {
-      console.error(err)
-      setError(`Unable to verify signer with the LMG contract`)
-      setPendingOffer(false)
-      return
-    }*/
 
     try {
       const tx = await letMeGetv1
@@ -204,7 +150,7 @@ export default function AcceptOfferModal(
     }
   }
 
-  function onCancelOffer() {
+  function onCancel() {
     close()
   }
 
@@ -221,7 +167,7 @@ export default function AcceptOfferModal(
       {open ? (
         <Dialog
           open={open}
-          onClose={onCancelOffer}
+          onClose={onCancel}
           aria-labelledby="alert-dialog-title"
           aria-describedby="alert-dialog-description"
           fullWidth={false}
