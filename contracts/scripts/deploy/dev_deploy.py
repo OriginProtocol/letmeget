@@ -20,7 +20,12 @@ def deploy_lmg(deployer):
 
 def fund_account(addr, value):
     return web3.eth.send_transaction(
-        {"from": accounts[0].address, "to": addr, "value": value}
+        {
+            "from": accounts[0].address,
+            "to": addr,
+            "value": value,
+            "gasPrice": int(2e9),
+        }
     )
 
 
@@ -62,10 +67,11 @@ def copy_artifact(address):
 
 
 def main():
-    # deployer = accounts.load("deployer")
-    # deployer = get_account("0x6772997B58BCFd05aCbc04256BaE38cEafc468Bb")
+    alice = os.environ.get("ALICE")
+    bob = os.environ.get("BOB")
+
     deployer = accounts[9]
-    # fund_account(deployer.address, int(5e18))
+
     apes, rats = deploy_mocks(deployer)
     lmg = deploy_lmg(deployer)
 
@@ -88,9 +94,51 @@ def main():
             print("Transferring Rat #{} to {}".format(i, owner))
             rats.transferFrom(deployer, owner, i, tx_params)
 
+    elif alice and bob:
+        alice_balance = web3.eth.get_balance(alice)
+        bob_balance = web3.eth.get_balance(bob)
+
+        amount = int(5e17)
+        if alice_balance < amount:
+            print(
+                "Funding Alice ({}) with {} ETH...".format(
+                    alice, amount / int(1e18)
+                )
+            )
+            fund_account(alice, amount)
+        if bob_balance < amount:
+            print(
+                "Funding Bob ({}) with {} ETH...".format(
+                    bob, amount / int(1e18)
+                )
+            )
+            fund_account(bob, amount)
+
+        # Each mock should've minted 10 NFTs
+        tx_params = {
+            "required_confs": 0,
+            "gas_limit": 75000,
+            "gas_price": int(1e9),
+            "from": deployer,
+        }
+
+        for i in range(1, 11):
+            if i % 2 == 0:
+                owner = alice
+            else:
+                owner = bob
+
+            print("Transferring Ape #{} to {}".format(i, owner))
+            apes.transferFrom(deployer, owner, i, tx_params)
+            print("Transferring Rat #{} to {}".format(i, owner))
+            rats.transferFrom(deployer, owner, i, tx_params)
+
     print("\n\nDeployed Contracts")
     print("------------------")
     print("Apes Mock: {}".format(apes.address))
     print("Rats Mock: {}".format(rats.address))
     print("LetMeGet_v1: {}".format(lmg.address))
+    if alice and bob:
+        print("Alice: {}".format(alice))
+        print("Bob: {}".format(bob))
     print("------------------\n\n")

@@ -14,24 +14,35 @@ class NodeCommand(Command):
     """ Start local chain and deploy contracts """
 
     description = "Startup ganache node with contracts"
-    user_options = []
+    user_options = [
+        ("alice=", "a", "Address for Alice account"),
+        ("bob=", "b", "Address for Bob account"),
+    ]
 
     def initialize_options(self):
-        pass
+        self.alice = None
+        self.bob = None
 
     def finalize_options(self):
         pass
 
     def run(self):
-        self.ganache = Popen("ganache-cli -a10 -i 1337 --chainId 1337".split())
+        self.ganache = Popen(
+            "ganache-cli -d -a10 -i 1337 --chainId 1337".split()
+        )
 
         # Let ganache settle
         sleep(3)
 
+        env = os.environ
+        env["ALICE"] = self.alice
+        env["BOB"] = self.bob
+
         # Deploy
         try:
             check_call(
-                "brownie run --network ganache scripts/deploy/dev_deploy.py".split()
+                "brownie run --network ganache scripts/deploy/dev_deploy.py".split(),
+                env=env,
             )
         except Exception as err:
             print(err)
