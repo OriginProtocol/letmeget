@@ -9,8 +9,6 @@ import useERC721Metadata from "../hooks/useERC721Metadata"
 import { TradeSide } from "../enums"
 import NFTArt, { NFTArtProps } from "./NFTArt"
 
-import "./TokenSelector.scss"
-
 const DEFAULT_OFFER_IMAGE = "/static/images/offer-hand.png"
 const DEFAULT_WANTED_IMAGE = "/static/images/accept-hand.png"
 
@@ -48,7 +46,7 @@ export default function TokenSelector(props: TokenSelectorProps): ReactElement {
 
   const label = `${side === TradeSide.Offer ? "Offered" : "Wanted"} NFT`
   const placeholder = EXAMPLE_TOKEN_REFS[side === TradeSide.Offer ? 0 : 1]
-  console.log("tokenMeta:", tokenMeta)
+
   return (
     <Paper className="token-selector">
       <NFTArt {...tokenMeta} maxWidth="400px" />

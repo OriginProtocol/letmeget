@@ -26,6 +26,7 @@ import ThumbUpIcon from "@material-ui/icons/ThumbUp"
 
 import ActionDialog from "./ActionDialog"
 import hashOffer from "../utils/hashOffer"
+import { ZERO_ADDRESS } from "../utils/eth"
 
 const { hexConcat, keccak256, arrayify } = utils
 
@@ -51,6 +52,7 @@ interface OfferProps {
   offerTokenID: number
   wantedContract: Contract
   wantedTokenID: number
+  onSuccess: () => void
 }
 
 const progressStyle = { height: "20", width: "20" }
@@ -70,6 +72,7 @@ export default function Offer(props: OfferProps): ReactElement {
     offerTokenID,
     wantedContract,
     wantedTokenID,
+    onSuccess,
   } = props
 
   const haveNecessaryProps = every([
@@ -99,24 +102,37 @@ export default function Offer(props: OfferProps): ReactElement {
       return null
     }
 
-    const offerHash = hashOffer(
-      offerContract.address,
+    const offerHash = hashOffer({
+      offerContractAddress: offerContract.address,
       offerTokenID,
-      wantedContract.address,
-      wantedTokenID
-    )
+      wantedContractAddress: wantedContract.address,
+      wantedTokenID,
+    })
 
-    return await letMeGetv1.offers(offerHash)
+    const offer = await letMeGetv1.offers(offerHash)
+
+    // Offer is [revoked, signer, signature]
+    return offer && offer[1] !== ZERO_ADDRESS ? offer[1] : null
   }
 
   async function onApprove() {
+    // TODO: Check that user is owner
     setPendingApprove(true)
     try {
-      await offerContract
+      const tx = await offerContract
         .connect(signer)
         .approve(letMeGetv1.address, offerTokenID)
-      // No reason to await here
-      getApproved()
+
+      console.debug("tx:", tx)
+      const receipt = await tx.wait()
+      console.debug("receipt:", receipt)
+
+      if (receipt.status) {
+        // No reason to await here
+        getApproved()
+      } else {
+        setError(`Transaction ${receipt.transactionHash} failed`)
+      }
     } catch (err) {
       console.error(err)
       setError(`Unable to get the approve LMG for token ID ${offerTokenID}`)
@@ -124,19 +140,20 @@ export default function Offer(props: OfferProps): ReactElement {
     setPendingApprove(false)
   }
 
-  function onCancelApprove() {
+  function closeModal() {
+    if (error) setError("")
     close()
   }
 
   async function onOffer() {
     setPendingOffer(true)
 
-    const offerHash = hashOffer(
-      offerContract.address,
+    const offerHash = hashOffer({
+      offerContractAddress: offerContract.address,
       offerTokenID,
-      wantedContract.address,
-      wantedTokenID
-    )
+      wantedContractAddress: wantedContract.address,
+      wantedTokenID,
+    })
 
     let signature
     try {
@@ -155,7 +172,7 @@ export default function Offer(props: OfferProps): ReactElement {
       // TODO: Check our own ethereum stackexchange history for this?
       const [contractSigner, contractHash] = await letMeGetv1
         .connect(signer)
-        .functions.signer(
+        .functions.offer_signer(
           offerContract.address,
           offerTokenID,
           wantedContract.address,
@@ -177,7 +194,7 @@ export default function Offer(props: OfferProps): ReactElement {
     }
 
     try {
-      await letMeGetv1
+      const tx = await letMeGetv1
         .connect(signer)
         .offer(
           offerContract.address,
@@ -186,16 +203,22 @@ export default function Offer(props: OfferProps): ReactElement {
           wantedTokenID,
           signature
         )
+
+      console.debug("tx:", tx)
+      const receipt = await tx.wait()
+      console.debug("receipt:", receipt)
+
+      if (receipt.status) {
+        onSuccess()
+      } else {
+        setError(`Transaction ${receipt.transactionHash} failed`)
+      }
     } catch (err) {
       console.error(err)
       setError(`Unable to get the approve LMG for token ID ${offerTokenID}`)
     }
 
     setPendingOffer(false)
-  }
-
-  function onCancelOffer() {
-    close()
   }
 
   useEffect(() => {
@@ -214,7 +237,7 @@ export default function Offer(props: OfferProps): ReactElement {
       {open ? (
         <Dialog
           open={open}
-          onClose={onCancelOffer}
+          onClose={closeModal}
           aria-labelledby="alert-dialog-title"
           aria-describedby="alert-dialog-description"
           fullWidth={!!offerExists}
@@ -238,7 +261,9 @@ export default function Offer(props: OfferProps): ReactElement {
             </>
           ) : (
             <>
-              <DialogTitle id="alert-dialog-title">Make Offer</DialogTitle>
+              <DialogTitle id="alert-dialog-title">
+                Make a Trade Offer
+              </DialogTitle>
               <DialogContent style={{ minWidth: "400px" }}>
                 {error ? (
                   <Alert severity="error" style={{ marginBottom: "1.5rem" }}>

@@ -35,6 +35,7 @@ interface ContractNames {
 
 const LOCAL_NODE_ENDPOINT = "http://localhost:8545"
 
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 export const DEFAULT_NETWORK = "1"
 export const NETWORKS: KeyValue = {
   "1": "mainnet",
@@ -530,13 +531,15 @@ async function loadArtifacts(chainId: number): Promise<Artifacts> {
 }
 
 // TODO: Leverage caching, and double check network
-export async function getProvider(networkId: string): Promise<EthereumContext> {
-  if (typeof _cachedProvider[networkId] !== "undefined") {
+export async function getProvider(
+  networkId?: string
+): Promise<EthereumContext> {
+  if (networkId && typeof _cachedProvider[networkId] !== "undefined") {
     console.debug("Returning cached provider")
     return _cachedProvider[networkId]
   }
 
-  const networkIdNumber = parseInt(networkId)
+  const networkIdNumber = networkId ? parseInt(networkId) : null
   let accounts: Array<string> = []
   let provider: ethers.providers.JsonRpcProvider
 
@@ -544,7 +547,7 @@ export async function getProvider(networkId: string): Promise<EthereumContext> {
     console.debug("Using in-browser provider")
     window.ethereum.sendAsync(
       { method: "net_version", params: [] },
-      (err: Error, v: string) => console.log(err, v)
+      (err: Error, v: string) => console.log("net_version", err, v)
     )
     provider = new ethers.providers.Web3Provider(window.ethereum)
     /*if (window.ethereum.isMetaMask) {
@@ -563,7 +566,7 @@ export async function getProvider(networkId: string): Promise<EthereumContext> {
     }
   }
 
-  const signer = provider.getSigner()
+  const signer = await provider.getSigner()
 
   // Check network
   const network = await provider.getNetwork()
@@ -580,7 +583,8 @@ export async function getProvider(networkId: string): Promise<EthereumContext> {
 
   const artifacts: Artifacts = await loadArtifacts(chainId)
 
-  if (chainId !== networkIdNumber) {
+  // Only mismatch error if a network is given/selected
+  if (networkIdNumber && chainId !== networkIdNumber) {
     console.debug("Network mismatch", chainId, networkIdNumber)
     return {
       artifacts,
@@ -589,6 +593,9 @@ export async function getProvider(networkId: string): Promise<EthereumContext> {
       success: false,
       error: `Invalid network. Node is connected to ${chainId}, we want ${networkId}`,
     }
+  } else {
+    // Use connected chain ID as our current network
+    networkId = chainId.toString()
   }
 
   // Get our accounts

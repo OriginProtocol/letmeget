@@ -1,0 +1,20 @@
+[tool.black]
+line-length = 80
+target-version = ['py38']
+include = '\.[p|v]yi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | env
+  | venv
+)/
+'''

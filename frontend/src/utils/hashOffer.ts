@@ -1,5 +1,7 @@
 import { utils } from "ethers"
 
+import { Offer } from "../interfaces"
+
 const { hexConcat, keccak256, zeroPad } = utils
 
 function add0xPrefix(v: string): string {
@@ -11,31 +13,19 @@ function numberToHex(n: number): string {
   return add0xPrefix(`${v.length % 2 !== 0 ? "0" : ""}${v}`)
 }
 
-export default function hashOffer(
-  offerContractAddress: string,
-  offerTokenID: number,
-  wantedContractAddress: string,
-  wantedTokenID: number
-): string {
-  console.log(
-    "hashOffer()",
+export default function hashOffer(offer: Offer): string {
+  const {
     offerContractAddress,
     offerTokenID,
     wantedContractAddress,
-    wantedTokenID
-  )
+    wantedTokenID,
+  } = offer
   const oa = zeroPad(offerContractAddress, 32)
-  console.log("oa:", oa)
-  console.log("offerTokenID:", offerTokenID, numberToHex(offerTokenID))
   const oid = zeroPad(numberToHex(offerTokenID), 32)
-  console.log("oid:", oid)
   const wa = zeroPad(wantedContractAddress, 32)
-  console.log("wa:", wa)
   const wid = zeroPad(numberToHex(wantedTokenID), 32)
-  console.log("wid:", wid)
   const packed = hexConcat([oa, oid, wa, wid])
-  console.log("packed:", packed)
   const hash = keccak256(packed)
-  console.log("hash:", hash)
+
   return hash
 }

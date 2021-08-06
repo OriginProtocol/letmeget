@@ -21,6 +21,19 @@ button {
   border: 0 #54bf66 solid;
 }
 
+header {
+  margin-top: 1rem;
+
+  h1.brand {
+    font-size: 2rem;
+    line-height: 2rem;
+    img {
+      max-height: 1.5rem;
+      margin-right: 0.5rem;
+    }
+  }
+}
+
 .trade-display {
   .make-offer-container {
     text-align: center;
@@ -58,6 +71,15 @@ button {
       button {
         width: 10px;
       }
+    }
+  }
+}
+
+.token-selector,
+.token-display {
+  .token-reference {
+    width: 100%;
+    input {
     }
   }
 }

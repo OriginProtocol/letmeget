@@ -1,0 +1,289 @@
+import every from "lodash/every"
+import React, { useState, useEffect, MouseEvent, ReactElement } from "react"
+import { ethers, Contract, utils } from "ethers"
+import { Signer } from "@ethersproject/abstract-signer"
+import {
+  Button,
+  Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  CircularProgress,
+  IconButton,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemSecondaryAction,
+  ListItemText,
+  ListSubheader,
+  Modal,
+  Typography,
+} from "@material-ui/core"
+import Alert from "@material-ui/lab/Alert"
+import ThumbUpIcon from "@material-ui/icons/ThumbUp"
+
+import hashOffer from "../utils/hashOffer"
+import { ZERO_ADDRESS } from "../utils/eth"
+import { Offer } from "../interfaces"
+import ActionDialog from "./ActionDialog"
+
+const { hexConcat, keccak256, arrayify } = utils
+
+function remove0xPrefix(v: string): string {
+  return v.startsWith("0x") ? v.slice(2) : v
+}
+
+function prefixMessage(msg: string): string {
+  // 32 byte message
+  //return `\x19Ethereum Signed Message:\n32${msg}`
+  // String prefix in hex without length: 0x19457468657265756d205369676e6564204d6573736167653a0a33
+  return `0x19457468657265756d205369676e6564204d6573736167653a0a3332${remove0xPrefix(
+    msg
+  )}`
+}
+
+interface AcceptOfferModalProps {
+  open: boolean
+  close: () => void
+  letMeGetv1: Contract
+  signer: Signer
+  offerContract: Contract
+  offerTokenID: number
+  wantedContract: Contract
+  wantedTokenID: number
+  onSuccess: () => void
+}
+
+const progressStyle = { height: "20", width: "20" }
+
+export default function AcceptOfferModal(
+  props: AcceptOfferModalProps
+): ReactElement {
+  const [error, setError] = useState(null)
+  const [pendingApprove, setPendingApprove] = useState(false)
+  const [pendingAccept, setPendingAccept] = useState(false)
+  const [lmgIsApproved, setLmgIsApproved] = useState(false)
+  const {
+    open,
+    close,
+    letMeGetv1,
+    signer,
+    offerContract,
+    offerTokenID,
+    wantedContract,
+    wantedTokenID,
+    onSuccess,
+  } = props
+
+  const haveNecessaryProps = every([
+    offerContract,
+    offerTokenID,
+    wantedContract,
+    wantedTokenID,
+  ])
+
+  function getApproved(): Promise<void> {
+    return wantedContract
+      .connect(signer)
+      .getApproved(wantedTokenID)
+      .then((approved: string) => {
+        setLmgIsApproved(approved == letMeGetv1.address)
+      })
+      .catch((err: Error) => {
+        console.error(err)
+        setError(
+          `Unable to get the approved account for token ID ${wantedTokenID}`
+        )
+      })
+  }
+
+  async function onApprove() {
+    setPendingApprove(true)
+    try {
+      const tx = await wantedContract
+        .connect(signer)
+        .approve(letMeGetv1.address, wantedTokenID)
+
+      console.debug("tx:", tx)
+      const receipt = await tx.wait()
+      console.debug("receipt:", receipt)
+
+      if (receipt.status) {
+        // No reason to await here
+        getApproved()
+      } else {
+        setError(`Transaction ${receipt.transactionHash} failed`)
+      }
+    } catch (err) {
+      console.error(err)
+      setError(`Unable to get the approve LMG for token ID ${offerTokenID}`)
+    }
+    setPendingApprove(false)
+  }
+
+  function onCancelApprove() {
+    close()
+  }
+
+  async function onAccept() {
+    setPendingAccept(true)
+
+    const offer: Offer = {
+      offerContractAddress: offerContract.address,
+      offerTokenID,
+      wantedContractAddress: wantedContract.address,
+      wantedTokenID,
+    }
+    const offerHash = hashOffer(offer)
+
+    let signature
+    try {
+      signature = await signer.signMessage(arrayify(offerHash))
+    } catch (err) {
+      console.error(err)
+      if (!err.message?.includes("User denied")) {
+        setError(`Unable to get the approve LMG for token ID ${offerTokenID}`)
+      }
+      setPendingAccept(false)
+      return
+    }
+
+    /*try {
+      // TODO: Verify hash of prefixed message
+      // TODO: Check our own ethereum stackexchange history for this?
+      const [contractSigner, contractHash] = await letMeGetv1
+        .connect(signer)
+        .functions.offer_signer(
+          offerContract.address,
+          offerTokenID,
+          wantedContract.address,
+          wantedTokenID,
+          signature
+        )
+      const saddress = await signer.getAddress()
+
+      if (contractSigner !== saddress) {
+        setError("Unexpected signer")
+        setPendingOffer(false)
+        return
+      }
+    } catch (err) {
+      console.error(err)
+      setError(`Unable to verify signer with the LMG contract`)
+      setPendingOffer(false)
+      return
+    }*/
+
+    try {
+      const tx = await letMeGetv1
+        .connect(signer)
+        .accept(
+          offerContract.address,
+          offerTokenID,
+          wantedContract.address,
+          wantedTokenID,
+          signature
+        )
+
+      console.debug("tx:", tx)
+      const receipt = await tx.wait()
+      console.debug("receipt:", receipt)
+
+      if (receipt.status) {
+        setPendingAccept(false)
+        onSuccess()
+      } else {
+        setError(`Transaction ${receipt.transactionHash} failed`)
+      }
+    } catch (err) {
+      console.error(err)
+      setError(`Unable to get the approve LMG for token ID ${offerTokenID}`)
+      setPendingAccept(false)
+    }
+  }
+
+  function onCancelOffer() {
+    close()
+  }
+
+  useEffect(() => {
+    if (wantedContract) {
+      getApproved()
+    }
+  }, [offerContract, offerTokenID, wantedContract, wantedTokenID])
+
+  if (!signer || !wantedContract) return null
+
+  return (
+    <>
+      {open ? (
+        <Dialog
+          open={open}
+          onClose={onCancelOffer}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+          fullWidth={false}
+          maxWidth="sm"
+        >
+          <DialogTitle id="alert-dialog-title">Accept Offer</DialogTitle>
+          <DialogContent style={{ minWidth: "400px" }}>
+            {error ? (
+              <Alert severity="error" style={{ marginBottom: "1.5rem" }}>
+                {error}
+              </Alert>
+            ) : null}
+            <Typography variant="subtitle1">
+              Complete these 2 steps to make your offer
+            </Typography>
+            <ol className="make-offer-steps">
+              <li key="approve">
+                <div className="label">
+                  Approve LetMeGet to transfer your NFT
+                </div>
+                <div className="controls">
+                  {lmgIsApproved ? (
+                    <Button aria-label="aprove" variant="contained" disabled>
+                      <ThumbUpIcon />
+                    </Button>
+                  ) : (
+                    <Button
+                      aria-label="aprove"
+                      variant="contained"
+                      color="primary"
+                      onClick={onApprove}
+                    >
+                      {pendingApprove ? (
+                        <CircularProgress color="inherit" size="20" />
+                      ) : (
+                        "Approve"
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </li>
+              <li key="make-offer">
+                <div className="label">Accept an offer</div>
+                <div className="controls">
+                  <Button
+                    aria-label="aprove"
+                    variant="contained"
+                    color="primary"
+                    onClick={onAccept}
+                  >
+                    {pendingAccept ? (
+                      <CircularProgress color="inherit" size="20" />
+                    ) : (
+                      "Accept"
+                    )}
+                  </Button>
+                </div>
+              </li>
+            </ol>
+          </DialogContent>
+        </Dialog>
+      ) : null}
+    </>
+  )
+}

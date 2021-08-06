@@ -5,7 +5,11 @@ __pycache__
 # Brownie build stuff
 contracts/build
 
+# Local network artifacts we don't need to commit
+frontend/src/artifacts/1337
+
 # JS junk
+frontend/dist/
 frontend/node_modules/
 
 # Sublime Text files

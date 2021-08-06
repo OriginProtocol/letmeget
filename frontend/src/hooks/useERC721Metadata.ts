@@ -41,7 +41,7 @@ function parseRef(tokenRef: string): [string, number] {
     return [parts[1], parts[2] ? parseInt(parts[2]) : null]
   }
 
-  throw new Error("Unknown token URI")
+  throw new Error(`Unknown token ref: ${tokenRef}`)
 }
 
 async function loadMeta(provider: Provider, address: string, tokenID: number) {
