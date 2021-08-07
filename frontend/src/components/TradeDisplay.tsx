@@ -20,6 +20,7 @@ interface TradeDisplayProps {
 
 const MAX_HISTORY = 10000
 const abiCoder = ethers.utils.defaultAbiCoder
+const { getAddress } = ethers.utils
 
 function parseOffer(evLog: Log): OfferInterface {
   const fullSig = evLog.topics[0]
@@ -66,6 +67,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
   const [showAcceptOfferModal, setShowAcceptOfferModal] = useState(false)
   const [wants, setWants] = useState(null)
   const [side, setSide] = useState(TradeSide.Offer)
+  const [tradeInvalid, setTradeInvalid] = useState(false)
 
   function firstOfferNotIgnored(wants: Array<OfferInterface>): OfferInterface {
     for (const offer of wants) {
@@ -131,12 +133,46 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
 
   useEffect(() => {
     if (offerContractAddress) {
-      setOfferContract(new Contract(offerContractAddress, ERC721_ABI))
+      const ocontract = new Contract(
+        offerContractAddress,
+        ERC721_ABI,
+        signer ? signer : provider
+      )
+      setOfferContract(ocontract)
+      if (offerID) {
+        const normalAccounts = eth.accounts.map((a) => getAddress(a))
+        ocontract
+          .ownerOf(offerID)
+          .then((owner: string) => {
+            if (normalAccounts.includes(owner)) {
+              // Toggle if set invalid
+              if (tradeInvalid) setTradeInvalid(false)
+            } else {
+              // Set invalid
+              setTradeInvalid(true)
+            }
+          })
+          .catch((err: Error) => {
+            console.error("Error calling ownerOf() on offer contract")
+            console.error(err)
+          })
+      }
     }
     if (wantedContractAddress) {
-      setWantedContract(new Contract(wantedContractAddress, ERC721_ABI))
+      const wcontract = new Contract(
+        wantedContractAddress,
+        ERC721_ABI,
+        signer ? signer : provider
+      )
+      setWantedContract(wcontract)
     }
-  }, [offerContractAddress, wantedContractAddress])
+  }, [
+    signer,
+    offerContractAddress,
+    offerID,
+    wantedContractAddress,
+    //wantedTokenID,
+  ])
 
   return (
     <div className="trade-display">
@@ -163,6 +199,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
             wantedTokenID={wantedID}
             side={side}
             eth={eth}
+            invalid={tradeInvalid}
             showMakeOffer={setShowMakeOffer}
             showAcceptOffer={setShowAcceptOfferModal}
             /*provider={eth ? eth.provider : null}*/
