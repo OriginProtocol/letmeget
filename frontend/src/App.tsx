@@ -19,8 +19,8 @@ const LOCAL_STORAGE_NETWORK = "ethnetwork"
 class App extends React.Component {
   state: KeyValue
 
-  constructor() {
-    super({})
+  constructor(props = {}) {
+    super(props)
 
     const storedNetwork = localStorage.getItem(LOCAL_STORAGE_NETWORK)
     const network = storedNetwork ? storedNetwork : null
