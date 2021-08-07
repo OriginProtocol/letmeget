@@ -10,15 +10,13 @@ export const IPFS_GATEWAY_ROOT = "https://ipfs.io/ipfs"
 
 export function translateIPFSURI(uri: string): string {
   if (!uri.startsWith("http") && uri.match(IPFS_CID_PATTERN)) {
-    console.log("****", uri.match(IPFS_CID_PATTERN))
     const url = new URL(uri)
-    console.log("url:", url)
 
     const webURI = `${IPFS_GATEWAY_ROOT}/${trimStart(
       url.hostname,
       "/"
     )}/${trimStart(url.pathname, "/")}`
-    console.debug("IPFS URL translated: ", uri)
+
     return webURI
   }
 
