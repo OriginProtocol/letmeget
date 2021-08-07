@@ -6,6 +6,7 @@ import { createTheme } from "@material-ui/core/styles"
 import Alert from "@material-ui/lab/Alert"
 
 import TradeDisplay from "./components/TradeDisplay"
+import Footer from "./components/Footer"
 
 import { Ethereum } from "./utils/context"
 import { NETWORKS, EthereumContext, getProvider } from "./utils/eth"
@@ -138,6 +139,8 @@ class App extends React.Component {
                   ) : (
                     <TradeDisplay eth={eth} />
                   )}
+                  <div className="header-pad" />
+                  <Footer eth={eth} />
                 </>
               )}
             </Ethereum.Consumer>

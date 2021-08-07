@@ -13,6 +13,7 @@ interface Artifacts {
 
 export interface EthereumContext {
   networkId: string
+  networkName: string
   artifacts: Artifacts
   provider: Provider
   signer?: Signer
@@ -40,6 +41,7 @@ export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 export const DEFAULT_NETWORK = "1"
 export const NETWORKS: KeyValue = {
   "1": "mainnet",
+  "4": "rinkeby",
   "1337": "ganache",
 }
 
@@ -597,6 +599,7 @@ export async function getProvider(
     console.debug("Network mismatch", chainId, networkIdNumber)
     return {
       networkId: chainId.toString(),
+      networkName: NETWORKS[chainId.toString()],
       artifacts,
       provider,
       accounts: [],
@@ -627,6 +630,7 @@ export async function getProvider(
 
   _cachedProvider[networkId] = {
     networkId,
+    networkName: NETWORKS[networkId],
     artifacts,
     provider,
     signer,
