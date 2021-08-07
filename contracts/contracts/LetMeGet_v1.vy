@@ -224,6 +224,16 @@ def _data_signer(
 
 @external
 @view
+def version() -> uint256:
+    """
+    @dev Version getter
+    @return Version of the LMG contract
+    """
+    return VERSION
+
+
+@external
+@view
 def prefix_hash(hash: bytes32) -> Bytes[65]:
     """
     @dev Prefix a hash with the "standard" Ethereum signed message prefix
