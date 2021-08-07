@@ -44,6 +44,7 @@ export const NETWORKS: KeyValue = {
 
 export const CONTRACT_NAMES: ContractNames = {
   "1": ["LetMeGet_v1"],
+  "4": ["LetMeGet_v1"],
   "1337": ["LetMeGet_v1", "ApesMock", "RatsMock"],
 }
 
