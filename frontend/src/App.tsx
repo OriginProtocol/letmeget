@@ -57,31 +57,51 @@ class App extends React.Component {
     this.initEthContext(network)
 
     this.changeNetwork = this.changeNetwork.bind(this)
+    this.switchNetwork = this.switchNetwork.bind(this)
+    this.switchAccounts = this.switchAccounts.bind(this)
+
+    if (window.ethereum) {
+      /*window.ethereum.on("accountsChanged", this.switchAccounts)
+      window.ethereum.on("networkChanged", this.switchNetwork)*/
+      // TODO: Lazy method of clearing state and reloading wants
+      window.ethereum.on("accountsChanged", () => {
+        location.reload()
+      })
+      window.ethereum.on("networkChanged", () => {
+        location.reload()
+      })
+    }
   }
 
-  async initEthContext(network: string): Promise<void> {
+  async initEthContext(network?: string): Promise<void> {
     const ethContext = await getProvider(network)
     this.setState({ ethContext })
   }
 
   changeNetwork(ev: ChangeEvent<HTMLInputElement>): void {
-    console.log(`changeNetwork to ${ev.target.value}`)
+    console.debug(`changeNetwork to ${ev.target.value}`)
     const network = ev.target.value
+    this.switchNetwork(network)
+  }
 
-    if (!(network in NETWORKS)) {
+  switchNetwork(networkId?: string): void {
+    console.debug(`switchNetwork to ${networkId}`)
+    if (!(networkId in NETWORKS)) {
       throw new Error("Invalid network")
     }
 
-    //const contract = network in CONTRACTS ? CONTRACTS[network] : CONTRACTS['1']
-
-    localStorage.setItem(LOCAL_STORAGE_NETWORK, network)
+    localStorage.setItem(LOCAL_STORAGE_NETWORK, networkId)
 
     this.setState({
-      network,
-      //contract
+      network: networkId,
     })
 
-    this.initEthContext(network)
+    this.initEthContext(networkId)
+  }
+
+  switchAccounts(): void {
+    console.debug(`switchAccounts`)
+    this.initEthContext(this.state.network)
   }
 
   handleError(err: Error): void {
@@ -106,7 +126,6 @@ class App extends React.Component {
                 Let Me Get
               </h1>
             </header>
-            {/*<MyAccount />*/}
 
             <div className="header-pad" />
 

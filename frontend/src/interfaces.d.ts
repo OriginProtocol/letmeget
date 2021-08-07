@@ -1,3 +1,7 @@
+import { Contract } from "ethers"
+
+import { TradeSide } from "./enums"
+
 declare global {
   interface Window {
     ethereum: any
@@ -14,4 +18,13 @@ export interface Offer {
   wantedContractAddress: string
   wantedTokenID: number
   wantedOwner?: string
+}
+
+export interface Trade extends Offer {
+  side: TradeSide
+  offerContract: Contract
+  offerTokenID: number
+  wantedContract: Contract
+  wantedTokenID: number
+  valid: boolean
 }

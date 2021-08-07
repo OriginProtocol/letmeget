@@ -7,7 +7,7 @@ import Alert from "@material-ui/lab/Alert"
 import useERC721Metadata from "../hooks/useERC721Metadata"
 
 import { TradeSide } from "../enums"
-import NFTArt, { NFTArtProps } from "./NFTArt"
+import NFTArt from "./NFTArt"
 
 const DEFAULT_OFFER_IMAGE = "/static/images/offer-hand.png"
 const DEFAULT_WANTED_IMAGE = "/static/images/accept-hand.png"

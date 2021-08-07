@@ -1,14 +1,14 @@
 import React, { useEffect, useState, ReactElement } from "react"
 import Grid from "@material-ui/core/Grid"
 import { Provider, Log } from "@ethersproject/abstract-provider"
-import { ethers, Contract } from "ethers"
+import { Signer } from "@ethersproject/abstract-signer"
+import { ethers } from "ethers"
 
-import { Ethereum } from "../utils/context"
-import { ERC721_ABI, EthereumContext } from "../utils/eth"
+import { EthereumContext, initERC721 } from "../utils/eth"
 import hashOffer from "../utils/hashOffer"
 import useLocalStorage from "../hooks/useLocalStorage"
 import { TradeSide } from "../enums"
-import { Offer as OfferInterface } from "../interfaces"
+import { Offer as OfferInterface, Trade as TradeInterface } from "../interfaces"
 import TokenSelector from "./TokenSelector"
 import TradeButton from "./TradeButton"
 import OfferModal from "./Offer"
@@ -57,17 +57,17 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
 
   const { provider, signer, letMeGetv1 } = eth
   const [getItem, setItem] = useLocalStorage()
-  const [offerContractAddress, setOfferContractAddress] = useState(null)
-  const [offerContract, setOfferContract] = useState(null)
-  const [offerID, setOfferID] = useState(null)
-  const [wantedContractAddress, setWantedContractAddress] = useState(null)
-  const [wantedContract, setWantedContract] = useState(null)
-  const [wantedID, setWantedID] = useState(null)
+  const [trade, setTrade] = useState(null)
+
   const [showMakeOffer, setShowMakeOffer] = useState(false)
   const [showAcceptOfferModal, setShowAcceptOfferModal] = useState(false)
   const [wants, setWants] = useState(null)
-  const [side, setSide] = useState(TradeSide.Offer)
-  const [tradeInvalid, setTradeInvalid] = useState(false)
+
+  const signerOrProvider: Signer | Provider = eth
+    ? signer
+      ? signer
+      : provider
+    : null
 
   function firstOfferNotIgnored(wants: Array<OfferInterface>): OfferInterface {
     for (const offer of wants) {
@@ -81,7 +81,14 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
     return null
   }
 
-  function ignoreOffer(offer: OfferInterface) {
+  function ignoreOffer(trade: TradeInterface) {
+    if (!trade.offerTokenID || !trade.wantedTokenID) return
+    const offer = {
+      offerContractAddress: trade.offerContract.address,
+      offerTokenID: trade.offerTokenID,
+      wantedContractAddress: trade.wantedContract.address,
+      wantedTokenID: trade.wantedTokenID,
+    }
     const offerHash = hashOffer(offer)
     setItem(`${offerHash}:ignore`, "true")
   }
@@ -98,27 +105,30 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
   }
 
   function clearTrade() {
+    console.debug("clearTrade()")
     setItem("leftTokenRef", "")
     setItem("rightTokenRef", "")
-    setOfferContract(null)
-    setOfferContractAddress(null)
-    setOfferID(null)
-    setWantedContract(null)
-    setWantedContractAddress(null)
-    setWantedID(null)
+    setTrade(null)
   }
 
   useEffect(() => {
     if (wants) {
       const offer = firstOfferNotIgnored(wants)
       if (offer) {
-        setSide(TradeSide.Wanted)
-        setOfferContractAddress(offer.offerContractAddress)
-        setOfferID(offer.offerTokenID)
-        setWantedContractAddress(offer.wantedContractAddress)
-        setWantedID(offer.wantedTokenID)
-        /*setOfferContract(new Contract(offer.offerContractAddress, ERC721_ABI))
-        setWantedContract(new Contract(offer.wantedContractAddress, ERC721_ABI))*/
+        setTrade({
+          side: TradeSide.Wanted,
+          offerContract: initERC721(
+            offer.offerContractAddress,
+            signerOrProvider
+          ),
+          offerTokenID: offer.offerTokenID,
+          wantedContract: initERC721(
+            offer.wantedContractAddress,
+            signerOrProvider
+          ),
+          wantedTokenID: offer.wantedTokenID,
+          valid: true,
+        })
       }
     } else {
       if (signer) {
@@ -132,47 +142,33 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
   }, [signer, provider, wants])
 
   useEffect(() => {
-    if (offerContractAddress) {
-      const ocontract = new Contract(
-        offerContractAddress,
-        ERC721_ABI,
-        signer ? signer : provider
-      )
-      setOfferContract(ocontract)
-      if (offerID) {
-        const normalAccounts = eth.accounts.map((a) => getAddress(a))
-        ocontract
-          .ownerOf(offerID)
-          .then((owner: string) => {
-            if (normalAccounts.includes(owner)) {
-              // Toggle if set invalid
-              if (tradeInvalid) setTradeInvalid(false)
-            } else {
-              // Set invalid
-              setTradeInvalid(true)
+    if (trade && trade.side === TradeSide.Offer && trade.offerTokenID) {
+      const normalAccounts = eth.accounts.map((a) => getAddress(a))
+      trade.offerContract
+        .ownerOf(trade.offerTokenID)
+        .then((owner: string) => {
+          if (normalAccounts.includes(owner)) {
+            // Toggle if set invalid
+            if (!trade.valid) {
+              setTrade({
+                ...trade,
+                valid: true,
+              })
             }
-          })
-          .catch((err: Error) => {
-            console.error("Error calling ownerOf() on offer contract")
-            console.error(err)
-          })
-      }
+          } else {
+            // Set invalid
+            setTrade({
+              ...trade,
+              valid: false,
+            })
+          }
+        })
+        .catch((err: Error) => {
+          console.error("Error calling ownerOf() on offer contract")
+          console.error(err)
+        })
     }
-    if (wantedContractAddress) {
-      const wcontract = new Contract(
-        wantedContractAddress,
-        ERC721_ABI,
-        signer ? signer : provider
-      )
-      setWantedContract(wcontract)
-    }
-  }, [
-    signer,
-    offerContractAddress,
-    offerID,
-    wantedContractAddress,
-    //wantedTokenID,
-  ])
+  }, [trade])
 
   return (
     <div className="trade-display">
@@ -182,27 +178,31 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
             side={TradeSide.Offer}
             provider={eth ? eth.provider : null}
             defaultValue={
-              offerContractAddress
-                ? `${offerContractAddress}:${offerID}`
+              trade && trade.offerContract
+                ? `${trade.offerContract.address}:${trade.offerTokenID}`
                 : getItem("leftTokenRef")
             }
             setDefault={(v: string) => setItem("leftTokenRef", v)}
-            setAddress={setOfferContractAddress}
-            setID={setOfferID}
+            setAddress={(addr) => {
+              setTrade({
+                ...trade,
+                offerContract: addr ? initERC721(addr, signerOrProvider) : null,
+              })
+            }}
+            setID={(offerTokenID) => {
+              setTrade({
+                ...trade,
+                offerTokenID,
+              })
+            }}
           />
         </Grid>
         <Grid className="make-offer-container" item xs={2}>
           <TradeButton
-            offerContractAddress={offerContractAddress}
-            offerTokenID={offerID}
-            wantedContractAddress={wantedContractAddress}
-            wantedTokenID={wantedID}
-            side={side}
+            trade={trade}
             eth={eth}
-            invalid={tradeInvalid}
             showMakeOffer={setShowMakeOffer}
             showAcceptOffer={setShowAcceptOfferModal}
-            /*provider={eth ? eth.provider : null}*/
           />
         </Grid>
         <Grid item xs={5}>
@@ -210,50 +210,55 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
             side={TradeSide.Wanted}
             provider={eth ? eth.provider : null}
             defaultValue={
-              wantedContractAddress
-                ? `${wantedContractAddress}:${wantedID}`
+              trade && trade.wantedContract
+                ? `${trade.wantedContract.address}:${trade.wantedTokenID}`
                 : getItem("rightTokenRef")
             }
             setDefault={(v: string) => setItem("rightTokenRef", v)}
-            setAddress={setWantedContractAddress}
-            setID={setWantedID}
+            setAddress={(addr) => {
+              setTrade({
+                ...trade,
+                wantedContract: addr
+                  ? initERC721(addr, signerOrProvider)
+                  : null,
+              })
+            }}
+            setID={(wantedTokenID) => {
+              setTrade({
+                ...trade,
+                wantedTokenID,
+              })
+            }}
           />
         </Grid>
       </Grid>
-      <OfferModal
-        signer={eth ? eth.signer : null}
-        letMeGetv1={eth ? eth.letMeGetv1 : null}
-        open={showMakeOffer}
-        close={() => setShowMakeOffer(false)}
-        offerContract={offerContract}
-        offerTokenID={offerID}
-        wantedContract={wantedContract}
-        wantedTokenID={wantedID}
-        onSuccess={() => {
-          setShowMakeOffer(false)
-          clearTrade()
-        }}
-      />
-      <AcceptOfferModal
-        signer={eth ? eth.signer : null}
-        letMeGetv1={eth ? eth.letMeGetv1 : null}
-        open={showAcceptOfferModal}
-        close={() => setShowAcceptOfferModal(false)}
-        offerContract={offerContract}
-        offerTokenID={offerID}
-        wantedContract={wantedContract}
-        wantedTokenID={wantedID}
-        onSuccess={() => {
-          ignoreOffer({
-            offerContractAddress,
-            offerTokenID: offerID,
-            wantedContractAddress,
-            wantedTokenID: wantedID,
-          })
-          setShowAcceptOfferModal(false)
-          clearTrade()
-        }}
-      />
+      {trade ? (
+        <>
+          <OfferModal
+            signer={eth ? eth.signer : null}
+            letMeGetv1={eth ? eth.letMeGetv1 : null}
+            open={showMakeOffer}
+            close={() => setShowMakeOffer(false)}
+            trade={trade}
+            onSuccess={() => {
+              setShowMakeOffer(false)
+              clearTrade()
+            }}
+          />
+          <AcceptOfferModal
+            signer={eth ? eth.signer : null}
+            letMeGetv1={eth ? eth.letMeGetv1 : null}
+            open={showAcceptOfferModal}
+            close={() => setShowAcceptOfferModal(false)}
+            trade={trade}
+            onSuccess={() => {
+              ignoreOffer(trade)
+              setShowAcceptOfferModal(false)
+              clearTrade()
+            }}
+          />
+        </>
+      ) : null}
     </div>
   )
 }

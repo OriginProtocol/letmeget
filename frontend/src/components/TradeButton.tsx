@@ -1,20 +1,15 @@
 import some from "lodash/some"
 import React, { ReactElement } from "react"
-import { ethers } from "ethers"
 import Button from "@material-ui/core/Button"
 import FavoriteIcon from "@material-ui/icons/Favorite"
 
+import { Trade as TradeInterface } from "../interfaces"
 import { TradeSide } from "../enums"
 import { EthereumContext } from "../utils/eth"
 
 interface TradeButtonProps {
-  side: TradeSide
+  trade: TradeInterface
   eth?: EthereumContext
-  invalid?: boolean
-  offerContractAddress: string
-  offerTokenID: number
-  wantedContractAddress: string
-  wantedTokenID: number
   showMakeOffer: (show: boolean) => void
   showAcceptOffer: (show: boolean) => void
 }
@@ -24,25 +19,16 @@ function anyNot(items: Array<any>) {
 }
 
 export default function TradeButton(props: TradeButtonProps): ReactElement {
-  const {
-    side,
-    eth,
-    invalid = false,
-    offerContractAddress,
-    offerTokenID,
-    wantedContractAddress,
-    wantedTokenID,
-    showMakeOffer,
-    showAcceptOffer,
-  } = props
+  const { trade, eth, showMakeOffer, showAcceptOffer } = props
 
   if (
+    !trade ||
     anyNot([
-      !invalid,
-      offerContractAddress,
-      offerTokenID,
-      wantedContractAddress,
-      wantedTokenID,
+      trade.valid,
+      trade.offerContract && trade.offerContract.signer,
+      trade.offerTokenID,
+      trade.wantedContract && trade.wantedContract.signer,
+      trade.wantedTokenID,
     ])
   ) {
     return <FavoriteIcon className="make-offer" />
@@ -62,9 +48,9 @@ export default function TradeButton(props: TradeButtonProps): ReactElement {
       variant="contained"
       color="primary"
       disabled={!eth}
-      onClick={side === TradeSide.Offer ? makeOffer : acceptOffer}
+      onClick={trade.side === TradeSide.Offer ? makeOffer : acceptOffer}
     >
-      {side === TradeSide.Offer ? "Make Offer" : "Accept Offer"}
+      {trade.side === TradeSide.Offer ? "Make Offer" : "Accept Offer"}
     </Button>
   )
 }

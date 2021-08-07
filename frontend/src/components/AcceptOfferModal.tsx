@@ -1,4 +1,3 @@
-import every from "lodash/every"
 import React, { useState, useEffect, ReactElement } from "react"
 import { Contract, utils } from "ethers"
 import { Signer } from "@ethersproject/abstract-signer"
@@ -14,23 +13,16 @@ import Alert from "@material-ui/lab/Alert"
 import ThumbUpIcon from "@material-ui/icons/ThumbUp"
 
 import hashOffer from "../utils/hashOffer"
-import { Offer } from "../interfaces"
+import { Offer, Trade as TradeInterface } from "../interfaces"
 
 const { arrayify } = utils
-
-function remove0xPrefix(v: string): string {
-  return v.startsWith("0x") ? v.slice(2) : v
-}
 
 interface AcceptOfferModalProps {
   open: boolean
   close: () => void
   letMeGetv1: Contract
   signer: Signer
-  offerContract: Contract
-  offerTokenID: number
-  wantedContract: Contract
-  wantedTokenID: number
+  trade: TradeInterface
   onSuccess: () => void
 }
 
@@ -41,24 +33,8 @@ export default function AcceptOfferModal(
   const [pendingApprove, setPendingApprove] = useState(false)
   const [pendingAccept, setPendingAccept] = useState(false)
   const [lmgIsApproved, setLmgIsApproved] = useState(false)
-  const {
-    open,
-    close,
-    letMeGetv1,
-    signer,
-    offerContract,
-    offerTokenID,
-    wantedContract,
-    wantedTokenID,
-    onSuccess,
-  } = props
-
-  /*const haveNecessaryProps = every([
-    offerContract,
-    offerTokenID,
-    wantedContract,
-    wantedTokenID,
-  ])*/
+  const { open, close, letMeGetv1, signer, trade, onSuccess } = props
+  const { offerContract, offerTokenID, wantedContract, wantedTokenID } = trade
 
   function getApproved(): Promise<void> {
     return wantedContract
@@ -155,7 +131,7 @@ export default function AcceptOfferModal(
   }
 
   useEffect(() => {
-    if (wantedContract) {
+    if (wantedContract && wantedTokenID) {
       getApproved()
     }
   }, [offerContract, offerTokenID, wantedContract, wantedTokenID])

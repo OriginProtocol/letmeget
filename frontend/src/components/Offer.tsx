@@ -13,6 +13,8 @@ import {
 import Alert from "@material-ui/lab/Alert"
 import ThumbUpIcon from "@material-ui/icons/ThumbUp"
 
+import { Trade as TradeInterface } from "../interfaces"
+
 import hashOffer from "../utils/hashOffer"
 import { ZERO_ADDRESS } from "../utils/eth"
 
@@ -37,10 +39,7 @@ interface OfferProps {
   close: () => void
   letMeGetv1: Contract
   signer: Signer
-  offerContract: Contract
-  offerTokenID: number
-  wantedContract: Contract
-  wantedTokenID: number
+  trade: TradeInterface
   onSuccess: () => void
 }
 
@@ -50,17 +49,8 @@ export default function Offer(props: OfferProps): ReactElement {
   const [pendingOffer, setPendingOffer] = useState(false)
   const [offerExists, setOfferExists] = useState(false)
   const [lmgIsApproved, setLmgIsApproved] = useState(false)
-  const {
-    open,
-    close,
-    letMeGetv1,
-    signer,
-    offerContract,
-    offerTokenID,
-    wantedContract,
-    wantedTokenID,
-    onSuccess,
-  } = props
+  const { open, close, letMeGetv1, signer, trade, onSuccess } = props
+  const { offerContract, offerTokenID, wantedContract, wantedTokenID } = trade
 
   const haveNecessaryProps = every([
     offerContract,
@@ -96,7 +86,7 @@ export default function Offer(props: OfferProps): ReactElement {
       wantedTokenID,
     })
 
-    const offer = await letMeGetv1.offers(offerHash)
+    const offer = await letMeGetv1.offers(offerHash, { gasLimit: 100000 })
 
     // Offer is [revoked, signer, signature]
     return offer && offer[1] !== ZERO_ADDRESS ? offer[1] : null

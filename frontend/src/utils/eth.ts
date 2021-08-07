@@ -12,6 +12,7 @@ interface Artifacts {
 }
 
 export interface EthereumContext {
+  networkId: string
   artifacts: Artifacts
   provider: Provider
   signer?: Signer
@@ -492,6 +493,13 @@ export const VALUES: KeyValue = {
 const _cachedProvider: Providers = {}
 let _localNodeSeen: boolean = null
 
+export function initERC721(
+  address: string,
+  signerOrProvider: Signer | Provider
+): Contract {
+  return new Contract(address, ERC721_ABI, signerOrProvider)
+}
+
 async function httpGetBlock(endpoint: string): Promise<KeyValue> {
   const res = await fetch(endpoint, {
     method: "POST",
@@ -588,6 +596,7 @@ export async function getProvider(
   if (networkIdNumber && chainId !== networkIdNumber) {
     console.debug("Network mismatch", chainId, networkIdNumber)
     return {
+      networkId: chainId.toString(),
       artifacts,
       provider,
       accounts: [],
@@ -617,6 +626,7 @@ export async function getProvider(
   console.debug("LetMeGetV1:", letMeGetv1)
 
   _cachedProvider[networkId] = {
+    networkId,
     artifacts,
     provider,
     signer,
