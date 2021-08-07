@@ -32,7 +32,7 @@ const OPENSEA_PATTERN =
 const RARIBLE_PATTERN =
   /^https?:\/\/(www\.)?rarible\.com\/token\/(0x[A-Fa-f0-9]{40}):([0-9]+)/
 // Attempt to match generally
-const BASIC_PATTERN = /(0x[A-Fa-f0-9]{40})[:/]{1}([0-9]+)$/
+const BASIC_PATTERN = /(0x[A-Fa-f0-9]{40})[:/]{1}([0-9]+)/
 
 function parseRef(tokenRef: string): [string, number] {
   const parts = tokenRef.match(BASIC_PATTERN)
