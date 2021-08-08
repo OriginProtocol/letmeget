@@ -3,11 +3,9 @@ const webpack = require('webpack')
 const CopyPlugin = require("copy-webpack-plugin")
 
 module.exports = {
-  mode: "development",
   target: "web", // es5
-  devtool: "eval-cheap-module-source-map",
   entry: {
-    portle: `${__dirname}/src/index.tsx`,
+    letmeget: `${__dirname}/src/index.tsx`,
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -26,10 +24,6 @@ module.exports = {
     /*aliasFields: ['browser', 'main', 'module'],
     mainFields: ['browser', 'main', 'module'],
     importsFields: ['browser', 'main', 'module'],*/
-  },
-  devServer: {
-    historyApiFallback: true,
-    port: 8000,
   },
   module: {
     rules: [

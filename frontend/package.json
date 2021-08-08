@@ -8,8 +8,8 @@
   "license": "MIT",
   "scripts": {
     "lint": "eslint",
-    "start": "webpack serve --mode=development --liveReload",
-    "build": "webpack --mode=production",
+    "start": "webpack serve --mode=development --liveReload --config webpack.dev.js",
+    "build": "webpack --mode=production --config webpack.prod.js",
     "deploy-ipfs": "ipfs add -r dist"
   },
   "dependencies": {
@@ -45,7 +45,8 @@
     "ts-loader": "^8.1.0",
     "webpack": "^5.31.2",
     "webpack-cli": "^4.6.0",
-    "webpack-dev-server": "^3.11.2"
+    "webpack-dev-server": "^3.11.2",
+    "webpack-merge": "^5.8.0"
   },
   "prettier": {
     "semi": false
