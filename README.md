@@ -4,6 +4,16 @@ NFT Trading platform
 
 ## Development Environment
 
+### Install Dependencies
+
+#### Frontend
+
+    cd frontend && yarn
+
+#### Contracts
+
+    brownie pm install OpenZeppelin/openzeppelin-contracts@4.2.0
+
 ### Running local node
 
 `-a` and `-b` set the Alice and Bob accounts.  Apes and Rats are distributed evenly between them.  Alice gets even token IDs and Bob gets the odds.
