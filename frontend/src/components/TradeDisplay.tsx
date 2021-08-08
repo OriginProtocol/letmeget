@@ -173,7 +173,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
   return (
     <div className="trade-display">
       <Grid container spacing={3}>
-        <Grid item xs={5}>
+        <Grid item xs={12} lg={5}>
           <TokenSelector
             side={TradeSide.Offer}
             provider={eth ? eth.provider : null}
@@ -197,7 +197,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
             }}
           />
         </Grid>
-        <Grid className="make-offer-container" item xs={2}>
+        <Grid className="make-offer-container" item xs={12} lg={2}>
           <TradeButton
             trade={trade}
             eth={eth}
@@ -205,7 +205,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
             showAcceptOffer={setShowAcceptOfferModal}
           />
         </Grid>
-        <Grid item xs={5}>
+        <Grid item xs={12} lg={5}>
           <TokenSelector
             side={TradeSide.Wanted}
             provider={eth ? eth.provider : null}
