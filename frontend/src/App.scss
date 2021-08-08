@@ -25,12 +25,20 @@ header {
   margin-top: 1rem;
 
   h1.brand {
+    display: inline-block;
+    float: left;
+    width: 300px;
     font-size: 2rem;
     line-height: 2rem;
     img {
       max-height: 1.5rem;
       margin-right: 0.5rem;
     }
+  }
+
+  .network-alert {
+    width: 400px;
+    float: right;
   }
 }
 
