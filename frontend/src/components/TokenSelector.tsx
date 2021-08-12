@@ -23,12 +23,11 @@ interface TokenSelectorProps {
   provider: Provider
   defaultValue: string
   setDefault: (v: any) => void
-  setAddress: (address: string) => void
-  setID: (id: number) => void
+  setToken: (a: string, i: string) => void
 }
 
 export default function TokenSelector(props: TokenSelectorProps): ReactElement {
-  const { setAddress, setID, side, provider, setDefault, defaultValue } = props
+  const { setToken, side, provider, setDefault, defaultValue } = props
   const { error, tokenAddress, tokenID, tokenMeta, setTokenReference } =
     useERC721Metadata(provider, {
       image:
@@ -36,8 +35,7 @@ export default function TokenSelector(props: TokenSelectorProps): ReactElement {
     })
 
   useEffect(() => {
-    setAddress(tokenAddress)
-    setID(tokenID)
+    setToken(tokenAddress, tokenID)
   }, [tokenAddress, tokenID])
 
   useEffect(() => {
