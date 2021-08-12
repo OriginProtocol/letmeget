@@ -131,6 +131,13 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
         })
       }
     } else {
+      if (!trade) {
+        setTrade((_trade: TradeInterface) => ({
+          ..._trade,
+          side: TradeSide.Offer,
+        }))
+      }
+
       if (signer) {
         signer.getAddress().then((address: string) => {
           getWants(address).then(setWants)
