@@ -24,7 +24,8 @@ export default function TradeButton(props: TradeButtonProps): ReactElement {
   if (
     !trade ||
     anyNot([
-      trade.valid,
+      // Ignore if undefined
+      typeof trade.valid === "undefined" || trade.valid,
       trade.offerContract && trade.offerContract.signer,
       trade.offerTokenID,
       trade.wantedContract && trade.wantedContract.signer,

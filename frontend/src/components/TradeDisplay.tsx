@@ -150,17 +150,17 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
           if (normalAccounts.includes(owner)) {
             // Toggle if set invalid
             if (!trade.valid) {
-              setTrade({
-                ...trade,
+              setTrade((_trade: TradeInterface) => ({
+                ..._trade,
                 valid: true,
-              })
+              }))
             }
           } else {
             // Set invalid
-            setTrade({
-              ...trade,
+            setTrade((_trade: TradeInterface) => ({
+              ..._trade,
               valid: false,
-            })
+            }))
           }
         })
         .catch((err: Error) => {
@@ -183,17 +183,12 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
                 : getItem("leftTokenRef")
             }
             setDefault={(v: string) => setItem("leftTokenRef", v)}
-            setAddress={(addr) => {
-              setTrade({
-                ...trade,
-                offerContract: addr ? initERC721(addr, signerOrProvider) : null,
-              })
-            }}
-            setID={(offerTokenID) => {
-              setTrade({
-                ...trade,
+            setToken={(addr: string, offerTokenID: string) => {
+              setTrade((_trade: TradeInterface) => ({
+                ..._trade,
                 offerTokenID,
-              })
+                offerContract: addr ? initERC721(addr, signerOrProvider) : null,
+              }))
             }}
           />
         </Grid>
@@ -215,19 +210,14 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
                 : getItem("rightTokenRef")
             }
             setDefault={(v: string) => setItem("rightTokenRef", v)}
-            setAddress={(addr) => {
-              setTrade({
-                ...trade,
+            setToken={(addr: string, wantedTokenID: string) => {
+              setTrade((_trade: TradeInterface) => ({
+                ..._trade,
+                wantedTokenID,
                 wantedContract: addr
                   ? initERC721(addr, signerOrProvider)
                   : null,
-              })
-            }}
-            setID={(wantedTokenID) => {
-              setTrade({
-                ...trade,
-                wantedTokenID,
-              })
+              }))
             }}
           />
         </Grid>

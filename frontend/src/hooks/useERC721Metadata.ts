@@ -9,7 +9,7 @@ import { translateIPFSURI, translateIPFSMetadata } from "../utils/ipfs"
 interface ERC721HookReturn {
   tokenMeta?: NFTArtProps
   tokenAddress?: string
-  tokenID?: number
+  tokenID?: string
   setTokenReference: (ref: string) => void
   error: string
 }
@@ -32,19 +32,19 @@ const OPENSEA_PATTERN =
 const RARIBLE_PATTERN =
   /^https?:\/\/(www\.)?rarible\.com\/token\/(0x[A-Fa-f0-9]{40}):([0-9]+)/
 // Attempt to match generally
-const BASIC_PATTERN = /(0x[A-Fa-f0-9]{40})[:/]{1}([0-9]+)/
+const BASIC_PATTERN = /(0x[A-Fa-f0-9]{40})[:/]{1}([0x]?[A-Za-z]+|[0-9]+)/
 
-function parseRef(tokenRef: string): [string, number] {
+function parseRef(tokenRef: string): [string, string] {
   const parts = tokenRef.match(BASIC_PATTERN)
 
   if (parts) {
-    return [parts[1], parts[2] ? parseInt(parts[2]) : null]
+    return [parts[1], parts[2]]
   }
 
   throw new Error(`Unknown token ref: ${tokenRef}`)
 }
 
-async function loadMeta(provider: Provider, address: string, tokenID: number) {
+async function loadMeta(provider: Provider, address: string, tokenID: string) {
   const contract = new ethers.Contract(address, ERC721_ABI, provider)
 
   let tokenURI = await contract.tokenURI(tokenID)
