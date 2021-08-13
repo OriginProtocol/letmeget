@@ -105,6 +105,10 @@ def transfer_token(token, from_address, to_address, token_id):
     return tx
 
 
+def test_version(letmegetv1):
+    assert letmegetv1.version() == 1
+
+
 def test_mocks(rats, apes):
     assert apes.address is not None
     assert rats.address is not None
