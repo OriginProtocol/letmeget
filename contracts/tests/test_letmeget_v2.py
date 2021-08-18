@@ -16,13 +16,14 @@ PREFIX = b"\x19Ethereum Signed Message:\n32"
 
 
 def normalize_signed_data(
-    offer_contract, offer_token_id, wanted_contract, wanted_token_id
+    offer_contract, offer_token_id, wanted_contract, wanted_token_id, expires
 ):
     return [
         Web3.toBytes(to_bytes(hexstr=offer_contract)).rjust(32, b"\0"),
         Web3.toBytes(offer_token_id).rjust(32, b"\0"),
         Web3.toBytes(to_bytes(hexstr=wanted_contract)).rjust(32, b"\0"),
         Web3.toBytes(wanted_token_id).rjust(32, b"\0"),
+        Web3.toBytes(expires).rjust(32, b"\0"),
     ]
 
 
@@ -34,12 +35,16 @@ def hash_message(offer_hash):
 
 
 def hash_params(
-    offer_contract, offer_token_id, wanted_contract, wanted_token_id
+    offer_contract, offer_token_id, wanted_contract, wanted_token_id, expires
 ):
     return Web3.solidityKeccak(
-        ["bytes32", "bytes32", "bytes32", "bytes32"],
+        ["bytes32", "bytes32", "bytes32", "bytes32", "bytes32"],
         normalize_signed_data(
-            offer_contract, offer_token_id, wanted_contract, wanted_token_id
+            offer_contract,
+            offer_token_id,
+            wanted_contract,
+            wanted_token_id,
+            expires,
         ),
     )
 
@@ -50,6 +55,7 @@ def sign_offer(
     offer_token_id,
     wanted_contract,
     wanted_token_id,
+    expires,
 ) -> (str, str):
     """ Sign offer data with given account """
     acc = Account.from_key(account.private_key)
@@ -58,6 +64,7 @@ def sign_offer(
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
     )
     prefixed_offer_hash = defunct_hash_message(offer_hash)
 
@@ -120,21 +127,23 @@ def test_offer_cannot_complete(apes, rats, letmegetv2):
     assert apes.getApproved(1) == ZERO_ADDRESS
     assert rats.getApproved(1) == ZERO_ADDRESS
     assert (
-        letmegetv2.offer_can_complete(apes.address, 1, rats.address, 1) is False
+        letmegetv2.offer_can_complete(apes.address, 1, rats.address, 1, 999999)
+        is False
     ), "Offer has not been made yet"
 
 
 def test_signature_works(web3, signers, apes, rats, letmegetv2):
     """ LMG contract hash and sign messages properly """
     bruce = signers[0]
+    expires = 999999
 
     signature, message_hash, offer_hash = sign_offer(
-        bruce, apes.address, 1, rats.address, 1
+        bruce, apes.address, 1, rats.address, 1, expires
     )
     signer = Account.recoverHash(message_hash, signature=signature)
 
     contract_signer, contract_hash = letmegetv2.offer_signer(
-        apes.address, 1, rats.address, 1, signature
+        apes.address, 1, rats.address, 1, expires, signature
     )
 
     assert contract_hash == to_hex(offer_hash), "hash mismatch"
@@ -149,9 +158,15 @@ def test_offer_fails_if_not_owner(web3, signers, apes, rats, letmegetv2):
     offer_token_id = 1
     wanted_contract = rats.address
     wanted_token_id = 1
+    expires = 999999
 
     signature, _, _ = sign_offer(
-        bruce, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+        bruce,
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
+        expires,
     )
 
     assert apes.getApproved(1) == ZERO_ADDRESS
@@ -162,6 +177,7 @@ def test_offer_fails_if_not_owner(web3, signers, apes, rats, letmegetv2):
             offer_token_id,
             wanted_contract,
             wanted_token_id,
+            expires,
             signature,
             {"from": bruce},
         )
@@ -174,9 +190,15 @@ def test_offer_fails_if_not_approved(web3, signers, apes, rats, letmegetv2):
     offer_token_id = 1
     wanted_contract = rats.address
     wanted_token_id = 1
+    expires = 999999
 
     signature, message_hash, _ = sign_offer(
-        bruce, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+        bruce,
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
+        expires,
     )
 
     assert apes.getApproved(offer_token_id) == ZERO_ADDRESS
@@ -185,14 +207,20 @@ def test_offer_fails_if_not_approved(web3, signers, apes, rats, letmegetv2):
     transfer_token(apes, accounts[0], bruce.address, offer_token_id)
 
     contract_signer, _ = letmegetv2.offer_signer(
-        apes.address, 1, rats.address, 1, signature
+        apes.address, 1, rats.address, 1, expires, signature
     )
     assert apes.ownerOf(1) == bruce.address, "Transfer not completed"
     assert contract_signer == bruce.address, "Invalid signature"
 
     with reverts("contract-not-approved"):
         letmegetv2.offer(
-            apes.address, 1, rats.address, 1, signature, {"from": bruce}
+            apes.address,
+            1,
+            rats.address,
+            1,
+            expires,
+            signature,
+            {"from": bruce},
         )
 
 
@@ -203,9 +231,16 @@ def test_offer_fails_if_expires_low(web3, signers, apes, rats, letmegetv2):
     offer_token_id = 1
     wanted_contract = rats.address
     wanted_token_id = 1
+    # Inentionally too low for the test
+    expires = 1
 
     signature, message_hash, _ = sign_offer(
-        bruce, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+        bruce,
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
+        expires,
     )
 
     assert apes.getApproved(offer_token_id) == ZERO_ADDRESS
@@ -214,14 +249,20 @@ def test_offer_fails_if_expires_low(web3, signers, apes, rats, letmegetv2):
     transfer_token(apes, accounts[0], bruce.address, offer_token_id)
 
     contract_signer, _ = letmegetv2.offer_signer(
-        apes.address, 1, rats.address, 1, signature
+        apes.address, 1, rats.address, 1, expires, signature
     )
     assert apes.ownerOf(1) == bruce.address, "Transfer not completed"
     assert contract_signer == bruce.address, "Invalid signature"
 
     with reverts("expires-too-low"):
-        letmegetv2.limited_offer(
-            apes.address, 1, rats.address, 1, 1, signature, {"from": bruce}
+        letmegetv2.offer(
+            apes.address,
+            1,
+            rats.address,
+            1,
+            expires,
+            signature,
+            {"from": bruce},
         )
 
 
@@ -232,6 +273,7 @@ def test_offer_succeeds(signers, apes, rats, letmegetv2):
     offer_token_id = 1
     wanted_contract = rats.address
     wanted_token_id = 1
+    expires = 999999
 
     # Fund user
     transfer_token(apes, accounts[0], bruce.address, offer_token_id)
@@ -241,7 +283,12 @@ def test_offer_succeeds(signers, apes, rats, letmegetv2):
 
     # Create offer signature
     signature, _, _ = sign_offer(
-        bruce, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+        bruce,
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
+        expires,
     )
 
     offer_tx = letmegetv2.offer(
@@ -249,6 +296,7 @@ def test_offer_succeeds(signers, apes, rats, letmegetv2):
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
         signature,
         {"from": bruce},
     )
@@ -261,6 +309,7 @@ def test_offer_succeeds(signers, apes, rats, letmegetv2):
     assert offer_tx.events["Offer"]["offer_token_id"] == offer_token_id
     assert offer_tx.events["Offer"]["wanted_contract"] == wanted_contract
     assert offer_tx.events["Offer"]["wanted_token_id"] == wanted_token_id
+    assert offer_tx.events["Offer"]["expires"] == expires
 
 
 def test_accept_fails_if_no_offer(web3, signers, apes, rats, letmegetv2):
@@ -271,6 +320,7 @@ def test_accept_fails_if_no_offer(web3, signers, apes, rats, letmegetv2):
     offer_token_id = 2
     wanted_contract = rats.address
     wanted_token_id = 2
+    expires = 999999
 
     signature, _, _ = sign_offer(
         dandi,
@@ -278,6 +328,7 @@ def test_accept_fails_if_no_offer(web3, signers, apes, rats, letmegetv2):
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
     )
 
     with reverts("offer-does-not-exist"):
@@ -286,6 +337,7 @@ def test_accept_fails_if_no_offer(web3, signers, apes, rats, letmegetv2):
             offer_token_id,
             wanted_contract,
             wanted_token_id,
+            expires,
             signature,
             {"from": bruce},
         )
@@ -299,6 +351,7 @@ def test_accept_fails_if_not_owner(signers, apes, rats, letmegetv2):
     offer_token_id = 4
     wanted_contract = rats.address
     wanted_token_id = 5
+    expires = 999999
 
     # Fund users
     transfer_token(apes, accounts[0], bruce.address, offer_token_id)
@@ -308,7 +361,12 @@ def test_accept_fails_if_not_owner(signers, apes, rats, letmegetv2):
 
     # Create offer signature
     offer_signature, _, _ = sign_offer(
-        bruce, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+        bruce,
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
+        expires,
     )
 
     offer_tx = letmegetv2.offer(
@@ -316,6 +374,7 @@ def test_accept_fails_if_not_owner(signers, apes, rats, letmegetv2):
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
         offer_signature,
         {"from": bruce},
     )
@@ -330,6 +389,7 @@ def test_accept_fails_if_not_owner(signers, apes, rats, letmegetv2):
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
     )
 
     with reverts("signer-not-owner"):
@@ -338,6 +398,7 @@ def test_accept_fails_if_not_owner(signers, apes, rats, letmegetv2):
             offer_token_id,
             wanted_contract,
             wanted_token_id,
+            expires,
             accept_signature,
             {"from": dandi},
         )
@@ -351,6 +412,7 @@ def test_accept_fails_if_not_approved(signers, apes, rats, letmegetv2):
     offer_token_id = 6
     wanted_contract = rats.address
     wanted_token_id = 7
+    expires = 999999
 
     # Fund users
     transfer_token(apes, accounts[0], bruce.address, offer_token_id)
@@ -361,7 +423,12 @@ def test_accept_fails_if_not_approved(signers, apes, rats, letmegetv2):
 
     # Create offer signature
     offer_signature, _, _ = sign_offer(
-        bruce, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+        bruce,
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
+        expires,
     )
 
     offer_tx = letmegetv2.offer(
@@ -369,6 +436,7 @@ def test_accept_fails_if_not_approved(signers, apes, rats, letmegetv2):
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
         offer_signature,
         {"from": bruce},
     )
@@ -383,6 +451,7 @@ def test_accept_fails_if_not_approved(signers, apes, rats, letmegetv2):
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
     )
 
     with reverts("contract-not-approved"):
@@ -391,6 +460,7 @@ def test_accept_fails_if_not_approved(signers, apes, rats, letmegetv2):
             offer_token_id,
             wanted_contract,
             wanted_token_id,
+            expires,
             accept_signature,
             {"from": dandi},
         )
@@ -412,19 +482,25 @@ def test_accept_fails_if_expired(web3, signers, apes, rats, letmegetv2):
     # Approve LMG contract
     approve(apes, bruce.address, letmegetv2.address, offer_token_id)
 
+    expiry = 5
+    expires = web3.eth.block_number + expiry  # 5 blocks from now
+
     # Create offer signature
     offer_signature, _, _ = sign_offer(
-        bruce, offer_contract, offer_token_id, wanted_contract, wanted_token_id
-    )
-
-    expiry = 5
-
-    offer_tx = letmegetv2.limited_offer(
+        bruce,
         offer_contract,
         offer_token_id,
         wanted_contract,
         wanted_token_id,
-        web3.eth.block_number + expiry,  # 5 blocks
+        expires,
+    )
+
+    offer_tx = letmegetv2.offer(
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
+        expires,
         offer_signature,
         {"from": bruce},
     )
@@ -446,6 +522,7 @@ def test_accept_fails_if_expired(web3, signers, apes, rats, letmegetv2):
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
     )
 
     with reverts("offer-expired"):
@@ -454,6 +531,7 @@ def test_accept_fails_if_expired(web3, signers, apes, rats, letmegetv2):
             offer_token_id,
             wanted_contract,
             wanted_token_id,
+            expires,
             accept_signature,
             {"from": dandi},
         )
@@ -467,6 +545,7 @@ def test_accept_fails_if_revoke(signers, apes, rats, letmegetv2):
     offer_token_id = 6
     wanted_contract = rats.address
     wanted_token_id = 7
+    expires = 999999
 
     # Fund users
     transfer_token(apes, accounts[0], bruce.address, offer_token_id)
@@ -477,7 +556,12 @@ def test_accept_fails_if_revoke(signers, apes, rats, letmegetv2):
 
     # Create offer signature
     offer_signature, _, _ = sign_offer(
-        bruce, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+        bruce,
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
+        expires,
     )
 
     offer_tx = letmegetv2.offer(
@@ -485,6 +569,7 @@ def test_accept_fails_if_revoke(signers, apes, rats, letmegetv2):
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
         offer_signature,
         {"from": bruce},
     )
@@ -497,6 +582,7 @@ def test_accept_fails_if_revoke(signers, apes, rats, letmegetv2):
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
         offer_signature,
         {"from": bruce},
     )
@@ -511,6 +597,7 @@ def test_accept_fails_if_revoke(signers, apes, rats, letmegetv2):
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
     )
 
     with reverts("offer-revoked"):
@@ -519,6 +606,7 @@ def test_accept_fails_if_revoke(signers, apes, rats, letmegetv2):
             offer_token_id,
             wanted_contract,
             wanted_token_id,
+            expires,
             accept_signature,
             {"from": dandi},
         )
@@ -532,6 +620,7 @@ def test_accept_succeeds(signers, apes, rats, letmegetv2):
     offer_token_id = 8
     wanted_contract = rats.address
     wanted_token_id = 9
+    expires = 999999
 
     # Fund users
     transfer_token(apes, accounts[0], bruce.address, offer_token_id)
@@ -543,7 +632,12 @@ def test_accept_succeeds(signers, apes, rats, letmegetv2):
 
     # Create offer signature
     offer_signature, _, _ = sign_offer(
-        bruce, offer_contract, offer_token_id, wanted_contract, wanted_token_id
+        bruce,
+        offer_contract,
+        offer_token_id,
+        wanted_contract,
+        wanted_token_id,
+        expires,
     )
 
     offer_tx = letmegetv2.offer(
@@ -551,6 +645,7 @@ def test_accept_succeeds(signers, apes, rats, letmegetv2):
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
         offer_signature,
         {"from": bruce},
     )
@@ -566,6 +661,7 @@ def test_accept_succeeds(signers, apes, rats, letmegetv2):
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
     )
 
     accept_tx = letmegetv2.accept(
@@ -573,6 +669,7 @@ def test_accept_succeeds(signers, apes, rats, letmegetv2):
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
         accept_signature,
         {"from": dandi},
     )
@@ -585,3 +682,4 @@ def test_accept_succeeds(signers, apes, rats, letmegetv2):
     assert accept_tx.events["Accept"]["offer_token_id"] == offer_token_id
     assert accept_tx.events["Accept"]["wanted_contract"] == wanted_contract
     assert accept_tx.events["Accept"]["wanted_token_id"] == wanted_token_id
+    assert accept_tx.events["Accept"]["expires"] == expires

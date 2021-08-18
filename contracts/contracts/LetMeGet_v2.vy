@@ -28,6 +28,7 @@ event Offer:
     offer_contract: indexed(address)
     wanted_token_id: uint256
     offer_token_id: uint256
+    expires: uint256
 
 event OfferRevoked:
     wanted_owner: indexed(address)
@@ -35,6 +36,7 @@ event OfferRevoked:
     offer_contract: indexed(address)
     wanted_token_id: uint256
     offer_token_id: uint256
+    expires: uint256
 
 event Accept:
     offer_owner: indexed(address)
@@ -42,6 +44,7 @@ event Accept:
     offer_contract: indexed(address)
     wanted_token_id: uint256
     offer_token_id: uint256
+    expires: uint256
 
 
 ###
@@ -109,6 +112,7 @@ def _hash_params(
     offer_token_id: uint256,
     wanted_contract: address,
     wanted_token_id: uint256,
+    expires: uint256,
 ) -> bytes32:
     """
     @dev Pack and hash the given offer paramters
@@ -123,7 +127,8 @@ def _hash_params(
             convert(offer_contract, bytes32),
             convert(offer_token_id, bytes32),
             convert(wanted_contract, bytes32),
-            convert(wanted_token_id, bytes32)
+            convert(wanted_token_id, bytes32),
+            convert(expires, bytes32)
         )
     )
 
@@ -139,7 +144,8 @@ def _offer_exists(
     offer_contract: address,
     offer_token_id: uint256,
     wanted_contract: address,
-    wanted_token_id: uint256
+    wanted_token_id: uint256,
+    expires: uint256
 ) -> bool:
     """
     @dev Check if an offer has been made and is alive
@@ -153,7 +159,8 @@ def _offer_exists(
         offer_contract,
         offer_token_id,
         wanted_contract,
-        wanted_token_id
+        wanted_token_id,
+        expires
     )
     return self.offers[param_hash].signer != empty(address)
 
@@ -164,7 +171,8 @@ def _offer_revoked(
     offer_contract: address,
     offer_token_id: uint256,
     wanted_contract: address,
-    wanted_token_id: uint256
+    wanted_token_id: uint256,
+    expires: uint256
 ) -> bool:
     """
     @dev Check if an offer has been revoked
@@ -178,7 +186,8 @@ def _offer_revoked(
         offer_contract,
         offer_token_id,
         wanted_contract,
-        wanted_token_id
+        wanted_token_id,
+        expires
     )
     return self.offers[param_hash].revoked
 
@@ -190,6 +199,7 @@ def _signer(
     offer_token_id: uint256,
     wanted_contract: address,
     wanted_token_id: uint256,
+    expires: uint256,
     signature: Bytes[65]
 ) -> (address, bytes32):
     """
@@ -205,7 +215,8 @@ def _signer(
         offer_contract,
         offer_token_id,
         wanted_contract,
-        wanted_token_id
+        wanted_token_id,
+        expires
     )
     msg_hash: bytes32 = keccak256(self._prefix_hash(param_hash))
     return self._recover(msg_hash, signature), param_hash
@@ -253,6 +264,7 @@ def _make_offer(
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
         signature
     )
 
@@ -276,7 +288,8 @@ def _make_offer(
         wanted_contract,
         offer_contract,
         wanted_token_id,
-        offer_token_id
+        offer_token_id,
+        expires,
     )
 
 
@@ -313,6 +326,7 @@ def hash_params(
     offer_token_id: uint256,
     wanted_contract: address,
     wanted_token_id: uint256,
+    expires: uint256,
 ) -> bytes32:
     """
     @dev Hash given parameters
@@ -326,7 +340,8 @@ def hash_params(
         offer_contract,
         offer_token_id,
         wanted_contract,
-        wanted_token_id
+        wanted_token_id,
+        expires
     )
 
 
@@ -337,6 +352,7 @@ def offer_can_complete(
     offer_token_id: uint256,
     wanted_contract: address,
     wanted_token_id: uint256,
+    expires: uint256,
 ) -> bool:
     """
     @dev Check if an offer should complete if accepted
@@ -350,7 +366,8 @@ def offer_can_complete(
         offer_contract,
         offer_token_id,
         wanted_contract,
-        wanted_token_id
+        wanted_token_id,
+        expires
     )
 
     return (
@@ -367,7 +384,8 @@ def offer_exists(
     offer_contract: address,
     offer_token_id: uint256,
     wanted_contract: address,
-    wanted_token_id: uint256
+    wanted_token_id: uint256,
+    expires: uint256,
 ) -> bool:
     """
     @dev Check if an offer has been made and is alive
@@ -381,7 +399,8 @@ def offer_exists(
         offer_contract,
         offer_token_id,
         wanted_contract,
-        wanted_token_id
+        wanted_token_id,
+        expires
     )
 
 
@@ -391,7 +410,8 @@ def offer_revoked(
     offer_contract: address,
     offer_token_id: uint256,
     wanted_contract: address,
-    wanted_token_id: uint256
+    wanted_token_id: uint256,
+    expires: uint256,
 ) -> bool:
     """
     @dev Check if an offer has been revoked
@@ -405,7 +425,8 @@ def offer_revoked(
         offer_contract,
         offer_token_id,
         wanted_contract,
-        wanted_token_id
+        wanted_token_id,
+        expires
     )
 
 
@@ -416,6 +437,7 @@ def offer_signer(
     offer_token_id: uint256,
     wanted_contract: address,
     wanted_token_id: uint256,
+    expires: uint256,
     signature: Bytes[65]
 ) -> (address, bytes32):
     """
@@ -431,34 +453,6 @@ def offer_signer(
         offer_token_id,
         wanted_contract,
         wanted_token_id,
-        signature
-    )
-
-
-@external
-@nonreentrant('offer')
-def offer(
-    offer_contract: address,
-    offer_token_id: uint256,
-    wanted_contract: address,
-    wanted_token_id: uint256,
-    signature: Bytes[65],
-):
-    """
-    @dev Offer a token for a wanted token
-    @param offer_contract Contract address for the offered token
-    @param offer_token_id Token ID for the offered token
-    @param wanted_contract Contract address for the wanted token
-    @param wanted_token_id Token ID for the wanted token
-    @param signature Offerer's signature of the offer data
-    """
-    expires: uint256 = block.number + DEFAULT_BLOCK_WINDOW
-
-    self._make_offer(
-        offer_contract,
-        offer_token_id,
-        wanted_contract,
-        wanted_token_id,
         expires,
         signature
     )
@@ -466,7 +460,7 @@ def offer(
 
 @external
 @nonreentrant('offer')
-def limited_offer(
+def offer(
     offer_contract: address,
     offer_token_id: uint256,
     wanted_contract: address,
@@ -500,6 +494,7 @@ def revoke(
     offer_token_id: uint256,
     wanted_contract: address,
     wanted_token_id: uint256,
+    expires: uint256,
     signature: Bytes[65],
 ):
     """
@@ -516,7 +511,8 @@ def revoke(
         offer_contract,
         offer_token_id,
         wanted_contract,
-        wanted_token_id
+        wanted_token_id,
+        expires
     )
 
     assert self.offers[param_hash].signer != empty(address), "offer-does-not-exist"
@@ -538,7 +534,8 @@ def revoke(
         wanted_contract,
         offer_contract,
         wanted_token_id,
-        offer_token_id
+        offer_token_id,
+        expires,
     )
 
 
@@ -549,6 +546,7 @@ def accept(
     offer_token_id: uint256,
     wanted_contract: address,
     wanted_token_id: uint256,
+    expires: uint256,
     signature: Bytes[65],
 ):
     """
@@ -567,6 +565,7 @@ def accept(
         offer_token_id,
         wanted_contract,
         wanted_token_id,
+        expires,
         signature
     )
 
@@ -602,5 +601,6 @@ def accept(
         wanted_contract,
         offer_contract,
         wanted_token_id,
-        offer_token_id
+        offer_token_id,
+        expires,
     )
