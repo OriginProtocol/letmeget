@@ -6,8 +6,11 @@
 @license MIT
 @author Mike Shultz <mike@originprotocol.com>
 
+CHANGELOG
+=========
+
 V2
-================
+--
 
 - Add offer expires to act as a validity window to reduce the likelyhood of a
      replay attack.
