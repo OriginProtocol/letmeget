@@ -17,6 +17,7 @@ export interface Offer {
   offerTokenID: number
   wantedContractAddress: string
   wantedTokenID: number
+  expires?: number
   wantedOwner?: string
 }
 
@@ -26,5 +27,6 @@ export interface Trade extends Offer {
   offerTokenID: number
   wantedContract: Contract
   wantedTokenID: number
+  expires: number
   valid: boolean
 }

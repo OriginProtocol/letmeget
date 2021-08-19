@@ -14,17 +14,20 @@ function numberToHex(n: number): string {
 }
 
 export default function hashOffer(offer: Offer): string {
+  console.log("offer:", offer)
   const {
     offerContractAddress,
     offerTokenID,
     wantedContractAddress,
     wantedTokenID,
+    expires,
   } = offer
   const oa = zeroPad(offerContractAddress, 32)
   const oid = zeroPad(numberToHex(offerTokenID), 32)
   const wa = zeroPad(wantedContractAddress, 32)
   const wid = zeroPad(numberToHex(wantedTokenID), 32)
-  const packed = hexConcat([oa, oid, wa, wid])
+  const exp = zeroPad(numberToHex(expires), 32)
+  const packed = hexConcat([oa, oid, wa, wid, exp])
   const hash = keccak256(packed)
 
   return hash

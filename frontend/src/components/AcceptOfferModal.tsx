@@ -20,7 +20,7 @@ const { arrayify } = utils
 interface AcceptOfferModalProps {
   open: boolean
   close: () => void
-  letMeGetv1: Contract
+  letMeGetv2: Contract
   signer: Signer
   trade: TradeInterface
   onSuccess: () => void
@@ -33,15 +33,21 @@ export default function AcceptOfferModal(
   const [pendingApprove, setPendingApprove] = useState(false)
   const [pendingAccept, setPendingAccept] = useState(false)
   const [lmgIsApproved, setLmgIsApproved] = useState(false)
-  const { open, close, letMeGetv1, signer, trade, onSuccess } = props
-  const { offerContract, offerTokenID, wantedContract, wantedTokenID } = trade
+  const { open, close, letMeGetv2, signer, trade, onSuccess } = props
+  const {
+    offerContract,
+    offerTokenID,
+    wantedContract,
+    wantedTokenID,
+    expires,
+  } = trade
 
   function getApproved(): Promise<void> {
     return wantedContract
       .connect(signer)
       .getApproved(wantedTokenID)
       .then((approved: string) => {
-        setLmgIsApproved(approved == letMeGetv1.address)
+        setLmgIsApproved(approved == letMeGetv2.address)
       })
       .catch((err: Error) => {
         console.error(err)
@@ -56,7 +62,7 @@ export default function AcceptOfferModal(
     try {
       const tx = await wantedContract
         .connect(signer)
-        .approve(letMeGetv1.address, wantedTokenID)
+        .approve(letMeGetv2.address, wantedTokenID)
 
       console.debug("tx:", tx)
       const receipt = await tx.wait()
@@ -83,6 +89,7 @@ export default function AcceptOfferModal(
       offerTokenID,
       wantedContractAddress: wantedContract.address,
       wantedTokenID,
+      expires,
     }
     const offerHash = hashOffer(offer)
 
@@ -99,13 +106,14 @@ export default function AcceptOfferModal(
     }
 
     try {
-      const tx = await letMeGetv1
+      const tx = await letMeGetv2
         .connect(signer)
         .accept(
           offerContract.address,
           offerTokenID,
           wantedContract.address,
           wantedTokenID,
+          expires,
           signature
         )
 
@@ -134,7 +142,7 @@ export default function AcceptOfferModal(
     if (wantedContract && wantedTokenID) {
       getApproved()
     }
-  }, [offerContract, offerTokenID, wantedContract, wantedTokenID])
+  }, [offerContract, offerTokenID, wantedContract, wantedTokenID, expires])
 
   if (!signer || !wantedContract) return null
 

@@ -13,7 +13,7 @@ export default function Footer(props: FooterProps): ReactElement {
     <a
       href={`https://${
         eth.networkId !== "1" ? `${eth.networkName}.` : ""
-      }etherscan.io/address/${eth.letMeGetv1.address}`}
+      }etherscan.io/address/${eth.letMeGetv2.address}`}
     >
       LetMeGet Contract
     </a>
