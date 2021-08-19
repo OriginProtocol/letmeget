@@ -33,6 +33,8 @@ const RARIBLE_PATTERN =
   /^https?:\/\/(www\.)?rarible\.com\/token\/(0x[A-Fa-f0-9]{40}):([0-9]+)/
 // Attempt to match generally
 const BASIC_PATTERN = /(0x[A-Fa-f0-9]{40})[:/]{1}([0x]?[A-Za-z]+|[0-9]+)/
+const JSON_PROXY =
+  "https://tfoj9imhsf.execute-api.us-west-2.amazonaws.com/json_proxy?uri="
 
 function parseRef(tokenRef: string): [string, string] {
   const parts = tokenRef.match(BASIC_PATTERN)
@@ -61,7 +63,7 @@ async function loadMeta(provider: Provider, address: string, tokenID: string) {
 
   console.log(`Fetching metadata for ${address}:${tokenID} from ${tokenURI}`)
 
-  const resp = await fetch(tokenURI, {
+  const resp = await fetch(`${JSON_PROXY}${encodeURIComponent(tokenURI)}`, {
     headers: {
       Accept: "application/json",
     },
@@ -71,7 +73,14 @@ async function loadMeta(provider: Provider, address: string, tokenID: string) {
     throw new Error(`Unable to fetch token metadata from ${tokenURI}`)
   }
 
-  return translateIPFSMetadata(await resp.json())
+  const jason = await resp.json()
+
+  if (!jason.body) {
+    console.error(jason)
+    throw new Error("Failed to proxy JSON request")
+  }
+
+  return translateIPFSMetadata(jason.body)
 }
 
 export default function useERC721Metadata(
