@@ -1,6 +1,6 @@
 # Let Me Get
 
-NFT swap decentralization.
+NFT swap decentralized application.
 
 https://letmeget.io
 
