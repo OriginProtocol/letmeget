@@ -1,6 +1,10 @@
 # Let Me Get
 
-NFT Trading platform
+NFT swap decentralization.
+
+https://letmeget.io
+
+**This software is experimental and currently only supports ERC-721 tokens**
 
 ## Development Environment
 
