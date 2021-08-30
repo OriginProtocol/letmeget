@@ -20,4 +20,4 @@ Now run the frontend in the `frontend/` directory.
 
 ## Deploy
 
-    cd frontend && yarn build && cd dist && aws --profile infra s3 cp --acl public-read --recursive . s3://letmeget.io/
+    yarn build && cd dist && aws --profile infra s3 cp --acl public-read --recursive . s3://letmeget.io/
