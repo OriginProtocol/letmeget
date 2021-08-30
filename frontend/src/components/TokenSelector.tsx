@@ -1,7 +1,6 @@
 import { Provider } from "@ethersproject/abstract-provider"
 import React, { useEffect, ReactElement, ChangeEvent } from "react"
-import Paper from "@material-ui/core/Paper"
-import TextField from "@material-ui/core/TextField"
+import { Paper, TextField, Typography } from "@material-ui/core"
 import Alert from "@material-ui/lab/Alert"
 
 import useERC721Metadata from "../hooks/useERC721Metadata"
@@ -54,6 +53,11 @@ export default function TokenSelector(props: TokenSelectorProps): ReactElement {
         image={showInvalid ? "/static/images/redx.svg" : tokenMeta.image}
         maxWidth="400px"
       />
+      {showInvalid ? (
+        <Typography align="center" color="error" gutterBottom={true}>
+          You don&apos;t own this token
+        </Typography>
+      ) : null}
       <TextField
         className="token-reference"
         label={label}
