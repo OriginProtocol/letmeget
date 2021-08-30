@@ -10,3 +10,9 @@ Setup Python vitual env
 Install dependencies
 
     pip install .[dev]
+
+## Deployment Notes
+
+### Rinkeby
+
+    LetMeGet_v2.deploy({"from": deployer, "type": 2, "maxFeePerGas": int(1e9), "maxPriorityFeePerGas": int(5e8)})
