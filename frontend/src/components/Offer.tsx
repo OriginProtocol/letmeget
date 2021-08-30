@@ -169,6 +169,9 @@ export default function Offer(props: OfferProps): ReactElement {
       const saddress = await signer.getAddress()
 
       if (contractSigner !== saddress) {
+        console.warn(
+          `Unexpected signer.  Expected ${saddress} but got ${contractSigner}`
+        )
         setError("Unexpected signer")
         setPendingOffer(false)
         return
