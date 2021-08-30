@@ -2,7 +2,7 @@ import os
 import json
 import shutil
 from pathlib import Path
-from brownie import ApesMock, RatsMock, LetMeGet_v1, accounts, web3
+from brownie import ApesMock, RatsMock, LetMeGet_v1, LetMeGet_v2, accounts, web3
 
 CHAIN_ID = 1337
 
@@ -14,8 +14,12 @@ def deploy_mocks(deployer):
     return (apes, rats)
 
 
-def deploy_lmg(deployer):
+def deploy_lmgv1(deployer):
     return LetMeGet_v1.deploy({"from": deployer})
+
+
+def deploy_lmgv2(deployer):
+    return LetMeGet_v2.deploy({"from": deployer})
 
 
 def fund_account(addr, value):
@@ -73,11 +77,13 @@ def main():
     deployer = accounts[9]
 
     apes, rats = deploy_mocks(deployer)
-    lmg = deploy_lmg(deployer)
+    lmgv1 = deploy_lmgv1(deployer)
+    lmgv2 = deploy_lmgv2(deployer)
 
     copy_artifact(apes.address)
     copy_artifact(rats.address)
-    copy_artifact(lmg.address)
+    copy_artifact(lmgv1.address)
+    copy_artifact(lmgv2.address)
 
     if os.environ.get("NFT_OWNER"):
         owner = os.environ.get("NFT_OWNER")
@@ -137,7 +143,8 @@ def main():
     print("------------------")
     print("Apes Mock: {}".format(apes.address))
     print("Rats Mock: {}".format(rats.address))
-    print("LetMeGet_v1: {}".format(lmg.address))
+    print("LetMeGet_v1: {}".format(lmgv1.address))
+    print("LetMeGet_v2: {}".format(lmgv2.address))
     if alice and bob:
         print("Alice: {}".format(alice))
         print("Bob: {}".format(bob))
