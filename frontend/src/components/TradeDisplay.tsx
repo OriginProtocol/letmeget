@@ -184,7 +184,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
         })
     }
   }, [trade])
-  console.log("TradeDisplay")
+
   return (
     <div className="trade-display">
       <Grid container spacing={3}>
@@ -197,7 +197,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
                 ? `${trade.offerContract.address}:${trade.offerTokenID}`
                 : getItem("leftTokenRef")
             }
-            showInvalid={trade ? !trade.valid : false}
+            showInvalid={trade && trade.offerContract ? !trade.valid : false}
             setDefault={(v: string) => setItem("leftTokenRef", v)}
             setToken={(addr: string, offerTokenID: string) => {
               setTrade((_trade: TradeInterface) => ({
