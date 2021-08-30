@@ -13,6 +13,7 @@ import { Offer as OfferInterface, Trade as TradeInterface } from "../interfaces"
 import TokenSelector from "./TokenSelector"
 import TradeButton from "./TradeButton"
 import OfferModal from "./Offer"
+import OfferComplete from "./OfferComplete"
 import AcceptOfferModal from "./AcceptOfferModal"
 
 interface TradeDisplayProps {
@@ -62,6 +63,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
   const [trade, setTrade] = useState(null)
 
   const [showMakeOffer, setShowMakeOffer] = useState(false)
+  const [showOfferComplete, setShowOfferComplete] = useState(false)
   const [showAcceptOfferModal, setShowAcceptOfferModal] = useState(false)
   const [wants, setWants] = useState(null)
 
@@ -236,6 +238,10 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
           />
         </Grid>
       </Grid>
+      <OfferComplete
+        open={showOfferComplete}
+        close={() => setShowOfferComplete(false)}
+      />
       {trade ? (
         <>
           <OfferModal
@@ -246,6 +252,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
             trade={trade}
             onSuccess={() => {
               setShowMakeOffer(false)
+              setShowOfferComplete(true)
               clearTrade()
             }}
           />
