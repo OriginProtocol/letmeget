@@ -22,12 +22,14 @@ interface TokenSelectorProps {
   side: TradeSide
   provider: Provider
   defaultValue: string
+  showInvalid?: boolean
   setDefault: (v: any) => void
   setToken: (a: string, i: string) => void
 }
 
 export default function TokenSelector(props: TokenSelectorProps): ReactElement {
-  const { setToken, side, provider, setDefault, defaultValue } = props
+  const { setToken, side, provider, showInvalid, setDefault, defaultValue } =
+    props
   const { error, tokenAddress, tokenID, tokenMeta, setTokenReference } =
     useERC721Metadata(provider, {
       image:
@@ -47,7 +49,11 @@ export default function TokenSelector(props: TokenSelectorProps): ReactElement {
 
   return (
     <Paper className="token-selector">
-      <NFTArt {...tokenMeta} maxWidth="400px" />
+      <NFTArt
+        {...tokenMeta}
+        image={showInvalid ? "/static/images/redx.svg" : tokenMeta.image}
+        maxWidth="400px"
+      />
       <TextField
         className="token-reference"
         label={label}
