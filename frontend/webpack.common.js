@@ -1,5 +1,5 @@
-const path = require('path')
-const webpack = require('webpack')
+const path = require("path")
+const webpack = require("webpack")
 const CopyPlugin = require("copy-webpack-plugin")
 
 module.exports = {
@@ -8,8 +8,8 @@ module.exports = {
     letmeget: `${__dirname}/src/index.tsx`,
   },
   output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: 'letmeget.js',
+    path: path.resolve(__dirname, "dist"),
+    filename: "letmeget.js",
   },
   resolve: {
     alias: {
@@ -59,16 +59,19 @@ module.exports = {
   },
   plugins: [
     new webpack.EnvironmentPlugin({
-      DEBUG: process.env.DEBUG || ''
+      DEBUG: process.env.DEBUG || "",
     }),
     new CopyPlugin({
       patterns: [
         { from: `./src/index.html`, to: "index.html" },
         { from: `./src/artifacts` },
         { from: `./src/static/fonts` },
-        ...['heart.png', 'offer-hand.png', 'accept-hand.png'].map(fname => (
-          { from: `./src/static/images/${fname}`, to: `static/images/${fname}` }
-        ))
+        ...["heart.png", "offer-hand.png", "accept-hand.png", "redx.svg"].map(
+          (fname) => ({
+            from: `./src/static/images/${fname}`,
+            to: `static/images/${fname}`,
+          })
+        ),
       ],
     }),
   ],

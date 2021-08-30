@@ -5,6 +5,7 @@ import { Signer } from "@ethersproject/abstract-signer"
 import { ethers } from "ethers"
 
 import { EthereumContext, initERC721 } from "../utils/eth"
+import { OFFER_EXPIRY } from "../utils/const"
 import hashOffer from "../utils/hashOffer"
 import useLocalStorage from "../hooks/useLocalStorage"
 import { TradeSide } from "../enums"
@@ -25,18 +26,18 @@ const { getAddress } = ethers.utils
 function parseOffer(evLog: Log): OfferInterface {
   const fullSig = evLog.topics[0]
 
-  // Offer(address,address,address,uint256,uint256)
+  // Offer(address,address,address,uint256,uint256,uint256)
   if (
     fullSig !==
-    "0x856df2f7c94d58b3881315ecac521eadd838e0f24cb792217529636fccf9040a"
+    "0xdd05046deba56c93e54f8d50db2b1b09c1c8214a86a893c490f37c0030853b60"
   ) {
     return null
   }
 
   const [wantedOwner, wantedContractAddress, offerContractAddress] =
     evLog.topics.slice(1).map((addr) => abiCoder.decode(["address"], addr)[0])
-  const [wantedTokenID, offerTokenID] = abiCoder.decode(
-    ["uint256", "uint256"],
+  const [wantedTokenID, offerTokenID, expires] = abiCoder.decode(
+    ["uint256", "uint256", "uint256"],
     evLog.data
   )
 
@@ -45,6 +46,7 @@ function parseOffer(evLog: Log): OfferInterface {
     offerTokenID: offerTokenID.toNumber(),
     wantedContractAddress,
     wantedTokenID: wantedTokenID.toNumber(),
+    expires: expires.toNumber(),
     wantedOwner,
   }
 }
@@ -55,7 +57,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
   // App is initializing
   if (!eth) return null
 
-  const { provider, signer, letMeGetv1 } = eth
+  const { provider, signer, letMeGetv2 } = eth
   const [getItem, setItem] = useLocalStorage()
   const [trade, setTrade] = useState(null)
 
@@ -88,6 +90,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
       offerTokenID: trade.offerTokenID,
       wantedContractAddress: trade.wantedContract.address,
       wantedTokenID: trade.wantedTokenID,
+      expires: trade.expires,
     }
     const offerHash = hashOffer(offer)
     setItem(`${offerHash}:ignore`, "true")
@@ -95,12 +98,11 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
 
   async function getWants(address: string): Promise<Array<OfferInterface>> {
     const blockNumber = await provider.getBlockNumber()
-    const filter = await letMeGetv1.filters.Offer(address, null, null)
+    const filter = await letMeGetv2.filters.Offer(address, null, null)
     const logs = await provider.getLogs({
       fromBlock: blockNumber - MAX_HISTORY,
       ...filter,
     })
-
     return logs.map(parseOffer).filter((o) => !!o)
   }
 
@@ -127,15 +129,19 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
             signerOrProvider
           ),
           wantedTokenID: offer.wantedTokenID,
+          expires: offer.expires,
           valid: true,
         })
       }
     } else {
       if (!trade) {
-        setTrade((_trade: TradeInterface) => ({
-          ..._trade,
-          side: TradeSide.Offer,
-        }))
+        provider.getBlockNumber().then((blockno: number) => {
+          setTrade((_trade: TradeInterface) => ({
+            ..._trade,
+            side: TradeSide.Offer,
+            expires: blockno + OFFER_EXPIRY,
+          }))
+        })
       }
 
       if (signer) {
@@ -176,7 +182,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
         })
     }
   }, [trade])
-
+  console.log("TradeDisplay")
   return (
     <div className="trade-display">
       <Grid container spacing={3}>
@@ -189,6 +195,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
                 ? `${trade.offerContract.address}:${trade.offerTokenID}`
                 : getItem("leftTokenRef")
             }
+            showInvalid={trade ? !trade.valid : false}
             setDefault={(v: string) => setItem("leftTokenRef", v)}
             setToken={(addr: string, offerTokenID: string) => {
               setTrade((_trade: TradeInterface) => ({
@@ -233,7 +240,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
         <>
           <OfferModal
             signer={eth ? eth.signer : null}
-            letMeGetv1={eth ? eth.letMeGetv1 : null}
+            letMeGetv2={eth ? eth.letMeGetv2 : null}
             open={showMakeOffer}
             close={() => setShowMakeOffer(false)}
             trade={trade}
@@ -244,7 +251,7 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
           />
           <AcceptOfferModal
             signer={eth ? eth.signer : null}
-            letMeGetv1={eth ? eth.letMeGetv1 : null}
+            letMeGetv2={eth ? eth.letMeGetv2 : null}
             open={showAcceptOfferModal}
             close={() => setShowAcceptOfferModal(false)}
             trade={trade}

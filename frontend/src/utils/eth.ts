@@ -18,7 +18,7 @@ export interface EthereumContext {
   provider: Provider
   signer?: Signer
   accounts: Array<string>
-  letMeGetv1?: Contract
+  letMeGetv2?: Contract
   success: boolean
   error: string
 }
@@ -46,9 +46,9 @@ export const NETWORKS: KeyValue = {
 }
 
 export const CONTRACT_NAMES: ContractNames = {
-  "1": ["LetMeGet_v1"],
-  "4": ["LetMeGet_v1"],
-  "1337": ["LetMeGet_v1", "ApesMock", "RatsMock"],
+  "1": ["LetMeGet_v2"],
+  "4": ["LetMeGet_v2"],
+  "1337": ["LetMeGet_v2", "ApesMock", "RatsMock"],
 }
 
 // TODO: Load from metafile?
@@ -403,91 +403,6 @@ export const ERC721_ABI: Array<KeyValue> = [
   },
 ]
 
-/*export const LETMEGETV1_ABI: Array<KeyValue> = [
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: "wanted_owner", type: "address" },
-      { indexed: true, name: "wanted_contract", type: "address" },
-      { indexed: true, name: "offer_contract", type: "address" },
-      { indexed: false, name: "wanted_token_id", type: "uint256" },
-      { indexed: false, name: "offer_token_id", type: "uint256" },
-    ],
-    name: "Offer",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: "offer_owner", type: "address" },
-      { indexed: true, name: "wanted_contract", type: "address" },
-      { indexed: true, name: "offer_contract", type: "address" },
-      { indexed: false, name: "wanted_token_id", type: "uint256" },
-      { indexed: false, name: "offer_token_id", type: "uint256" },
-    ],
-    name: "Accept",
-    type: "event",
-  },
-  {
-    gas: 2541,
-    inputs: [
-      { name: "offer_contract", type: "address" },
-      { name: "offer_token_id", type: "uint256" },
-      { name: "wanted_contract", type: "address" },
-      { name: "wanted_token_id", type: "uint256" },
-    ],
-    name: "offer_can_complete",
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    gas: 28706,
-    inputs: [
-      { name: "offer_contract", type: "address" },
-      { name: "offer_token_id", type: "uint256" },
-      { name: "wanted_contract", type: "address" },
-      { name: "wanted_token_id", type: "uint256" },
-      { name: "signature", type: "bytes" },
-    ],
-    name: "signer",
-    outputs: [
-      { name: "", type: "address" },
-      { name: "", type: "bytes32" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    gas: 126998,
-    inputs: [
-      { name: "offer_contract", type: "address" },
-      { name: "offer_token_id", type: "uint256" },
-      { name: "wanted_contract", type: "address" },
-      { name: "wanted_token_id", type: "uint256" },
-      { name: "signature", type: "bytes" },
-    ],
-    name: "offer",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    gas: 115367,
-    inputs: [
-      { name: "offer_contract", type: "address" },
-      { name: "offer_token_id", type: "uint256" },
-      { name: "wanted_contract", type: "address" },
-      { name: "wanted_token_id", type: "uint256" },
-      { name: "signature", type: "bytes" },
-    ],
-    name: "accept",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-]*/
-
 export const VALUES: KeyValue = {
   oneEther: ethers.BigNumber.from("1000000000000000000"),
 }
@@ -620,13 +535,11 @@ export async function getProvider(
   }
 
   // Contracts
-  const lmgAddress: string = artifacts?.LetMeGet_v1?.deployment?.address
-  const lmgABI: ContractInterface = artifacts?.LetMeGet_v1?.abi
-  const letMeGetv1: Contract = lmgAddress
+  const lmgAddress: string = artifacts?.LetMeGet_v2?.deployment?.address
+  const lmgABI: ContractInterface = artifacts?.LetMeGet_v2?.abi
+  const letMeGetv2: Contract = lmgAddress
     ? new Contract(lmgAddress, lmgABI, signer)
     : null
-
-  console.debug("LetMeGetV1:", letMeGetv1)
 
   _cachedProvider[networkId] = {
     networkId,
@@ -635,7 +548,7 @@ export async function getProvider(
     provider,
     signer,
     accounts,
-    letMeGetv1,
+    letMeGetv2,
     success: true,
     error: null,
   }

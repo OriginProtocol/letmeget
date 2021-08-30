@@ -17,6 +17,7 @@ import { Trade as TradeInterface } from "../interfaces"
 
 import hashOffer from "../utils/hashOffer"
 import { ZERO_ADDRESS } from "../utils/eth"
+import { OFFER_EXPIRY } from "../utils/const"
 
 const { arrayify } = utils
 
@@ -37,7 +38,7 @@ function prefixMessage(msg: string): string {
 interface OfferProps {
   open: boolean
   close: () => void
-  letMeGetv1: Contract
+  letMeGetv2: Contract
   signer: Signer
   trade: TradeInterface
   onSuccess: () => void
@@ -49,8 +50,14 @@ export default function Offer(props: OfferProps): ReactElement {
   const [pendingOffer, setPendingOffer] = useState(false)
   const [offerExists, setOfferExists] = useState(false)
   const [lmgIsApproved, setLmgIsApproved] = useState(false)
-  const { open, close, letMeGetv1, signer, trade, onSuccess } = props
-  const { offerContract, offerTokenID, wantedContract, wantedTokenID } = trade
+  const { open, close, letMeGetv2, signer, trade, onSuccess } = props
+  const {
+    offerContract,
+    offerTokenID,
+    wantedContract,
+    wantedTokenID,
+    expires,
+  } = trade
 
   const haveNecessaryProps = every([
     offerContract,
@@ -64,7 +71,7 @@ export default function Offer(props: OfferProps): ReactElement {
       .connect(signer)
       .getApproved(offerTokenID)
       .then((approved: string) => {
-        setLmgIsApproved(approved == letMeGetv1.address)
+        setLmgIsApproved(approved == letMeGetv2.address)
       })
       .catch((err: Error) => {
         console.error(err)
@@ -84,9 +91,10 @@ export default function Offer(props: OfferProps): ReactElement {
       offerTokenID,
       wantedContractAddress: wantedContract.address,
       wantedTokenID,
+      expires,
     })
 
-    const offer = await letMeGetv1.offers(offerHash, { gasLimit: 100000 })
+    const offer = await letMeGetv2.offers(offerHash, { gasLimit: 100000 })
 
     // Offer is [revoked, signer, signature]
     return offer && offer[1] !== ZERO_ADDRESS ? offer[1] : null
@@ -98,7 +106,7 @@ export default function Offer(props: OfferProps): ReactElement {
     try {
       const tx = await offerContract
         .connect(signer)
-        .approve(letMeGetv1.address, offerTokenID)
+        .approve(letMeGetv2.address, offerTokenID)
 
       console.debug("tx:", tx)
       const receipt = await tx.wait()
@@ -130,6 +138,7 @@ export default function Offer(props: OfferProps): ReactElement {
       offerTokenID,
       wantedContractAddress: wantedContract.address,
       wantedTokenID,
+      expires,
     })
 
     let signature
@@ -147,13 +156,14 @@ export default function Offer(props: OfferProps): ReactElement {
     try {
       // TODO: Verify hash of prefixed message
       // TODO: Check our own ethereum stackexchange history for this?
-      const [contractSigner, contractHash] = await letMeGetv1
+      const [contractSigner, contractHash] = await letMeGetv2
         .connect(signer)
         .functions.offer_signer(
           offerContract.address,
           offerTokenID,
           wantedContract.address,
           wantedTokenID,
+          expires,
           signature
         )
       const saddress = await signer.getAddress()
@@ -171,13 +181,14 @@ export default function Offer(props: OfferProps): ReactElement {
     }
 
     try {
-      const tx = await letMeGetv1
+      const tx = await letMeGetv2
         .connect(signer)
         .offer(
           offerContract.address,
           offerTokenID,
           wantedContract.address,
           wantedTokenID,
+          expires,
           signature
         )
 
@@ -201,9 +212,11 @@ export default function Offer(props: OfferProps): ReactElement {
   useEffect(() => {
     if (offerContract) {
       getApproved()
-      getOfferer().then((offerer) => setOfferExists(!!offerer))
+      if (expires) {
+        getOfferer().then((offerer) => setOfferExists(!!offerer))
+      }
     }
-  }, [offerContract, offerTokenID, wantedContract, wantedTokenID])
+  }, [offerContract, offerTokenID, wantedContract, wantedTokenID, expires])
 
   const offerURL = haveNecessaryProps
     ? `https://letmeget.io/#/offer/${offerContract.address}:${offerTokenID}:${wantedContract.address}:${wantedTokenID}`
