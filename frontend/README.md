@@ -17,3 +17,7 @@ They'll be funded and transferred NFTs to test with.
 Now run the frontend in the `frontend/` directory.
 
     yarn start
+
+## Deploy
+
+    cd frontend && yarn build && cd dist && aws --profile infra s3 cp --acl public-read --recursive . s3://letmeget.io/
