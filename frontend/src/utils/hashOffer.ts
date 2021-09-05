@@ -1,4 +1,4 @@
-import { utils } from "ethers"
+import { utils, BigNumber } from "ethers"
 
 import { Offer } from "../interfaces"
 
@@ -8,9 +8,11 @@ function add0xPrefix(v: string): string {
   return v.startsWith("0x") ? v : `0x${v}`
 }
 
-function numberToHex(n: number): string {
-  const v = n.toString(16)
-  return add0xPrefix(`${v.length % 2 !== 0 ? "0" : ""}${v}`)
+function numberToHex(n: string | BigNumber): string {
+  if (typeof n === "string") {
+    n = BigNumber.from(n)
+  }
+  return n.toHexString()
 }
 
 export default function hashOffer(offer: Offer): string {
@@ -26,7 +28,7 @@ export default function hashOffer(offer: Offer): string {
   const oid = zeroPad(numberToHex(offerTokenID), 32)
   const wa = zeroPad(wantedContractAddress, 32)
   const wid = zeroPad(numberToHex(wantedTokenID), 32)
-  const exp = zeroPad(numberToHex(expires), 32)
+  const exp = zeroPad(numberToHex(BigNumber.from(expires)), 32)
   const packed = hexConcat([oa, oid, wa, wid, exp])
   const hash = keccak256(packed)
 

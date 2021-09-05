@@ -133,13 +133,35 @@ export default function Offer(props: OfferProps): ReactElement {
   async function onOffer() {
     setPendingOffer(true)
 
-    const offerHash = hashOffer({
+    const offerObj = {
       offerContractAddress: offerContract.address,
       offerTokenID,
       wantedContractAddress: wantedContract.address,
       wantedTokenID,
       expires,
-    })
+    }
+
+    const offerHash = hashOffer(offerObj)
+
+    // Save the extra JSON-RPC request in a prod build
+    if (process.env.NODE_ENV !== "production") {
+      const contractHash = await letMeGetv2.hash_params(
+        offerContract.address,
+        offerTokenID,
+        wantedContract.address,
+        wantedTokenID,
+        expires
+      )
+
+      if (contractHash !== offerHash) {
+        console.warn(
+          `Unexpected hash.  Expected ${offerHash} but got ${contractHash}`
+        )
+        setError("Unexpected hash")
+        setPendingOffer(false)
+        return
+      }
+    }
 
     let signature
     try {

@@ -1,4 +1,4 @@
-import { Contract } from "ethers"
+import { Contract, BigNumber } from "ethers"
 
 import { TradeSide } from "./enums"
 
@@ -14,9 +14,9 @@ export interface KeyValue {
 
 export interface Offer {
   offerContractAddress: string
-  offerTokenID: number
+  offerTokenID: string | BigNumber
   wantedContractAddress: string
-  wantedTokenID: number
+  wantedTokenID: string | BigNumber
   expires?: number
   wantedOwner?: string
 }
@@ -24,9 +24,9 @@ export interface Offer {
 export interface Trade extends Offer {
   side: TradeSide
   offerContract: Contract
-  offerTokenID: number
+  offerTokenID: string | BigNumber
   wantedContract: Contract
-  wantedTokenID: number
+  wantedTokenID: string | BigNumber
   expires: number
   valid: boolean
 }
