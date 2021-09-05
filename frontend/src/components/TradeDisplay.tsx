@@ -136,16 +136,10 @@ export default function TradeDisplay(props?: TradeDisplayProps): ReactElement {
         })
       }
     } else {
-      if (!trade) {
-        provider.getBlockNumber().then((blockno: number) => {
-          setTrade((_trade: TradeInterface) => ({
-            ..._trade,
-            side: TradeSide.Offer,
-            expires: blockno + OFFER_EXPIRY,
-          }))
-        })
-      }
-
+      setTrade((_trade: TradeInterface) => ({
+        ..._trade,
+        side: TradeSide.Offer,
+      }))
       if (signer) {
         signer.getAddress().then((address: string) => {
           getWants(address).then(setWants)

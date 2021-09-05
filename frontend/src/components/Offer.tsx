@@ -133,35 +133,17 @@ export default function Offer(props: OfferProps): ReactElement {
   async function onOffer() {
     setPendingOffer(true)
 
+    const blockno = await signer.provider.getBlockNumber()
+
     const offerObj = {
       offerContractAddress: offerContract.address,
       offerTokenID,
       wantedContractAddress: wantedContract.address,
       wantedTokenID,
-      expires,
+      expires: blockno + OFFER_EXPIRY,
     }
 
     const offerHash = hashOffer(offerObj)
-
-    // Save the extra JSON-RPC request in a prod build
-    if (process.env.NODE_ENV !== "production") {
-      const contractHash = await letMeGetv2.hash_params(
-        offerContract.address,
-        offerTokenID,
-        wantedContract.address,
-        wantedTokenID,
-        expires
-      )
-
-      if (contractHash !== offerHash) {
-        console.warn(
-          `Unexpected hash.  Expected ${offerHash} but got ${contractHash}`
-        )
-        setError("Unexpected hash")
-        setPendingOffer(false)
-        return
-      }
-    }
 
     let signature
     try {
@@ -181,14 +163,24 @@ export default function Offer(props: OfferProps): ReactElement {
       const [contractSigner, contractHash] = await letMeGetv2
         .connect(signer)
         .functions.offer_signer(
-          offerContract.address,
-          offerTokenID,
-          wantedContract.address,
-          wantedTokenID,
-          expires,
+          offerObj.offerContractAddress,
+          offerObj.offerTokenID,
+          offerObj.wantedContractAddress,
+          offerObj.wantedTokenID,
+          offerObj.expires,
           signature
         )
       const saddress = await signer.getAddress()
+
+      // If the hash is wrong, the signature will be wrong
+      if (contractHash !== offerHash) {
+        console.warn(
+          `Unexpected hash.  Expected ${offerHash} but got ${contractHash}`
+        )
+        setError("Unexpected hash")
+        setPendingOffer(false)
+        return
+      }
 
       if (contractSigner !== saddress) {
         console.warn(
@@ -209,11 +201,11 @@ export default function Offer(props: OfferProps): ReactElement {
       const tx = await letMeGetv2
         .connect(signer)
         .offer(
-          offerContract.address,
-          offerTokenID,
-          wantedContract.address,
-          wantedTokenID,
-          expires,
+          offerObj.offerContractAddress,
+          offerObj.offerTokenID,
+          offerObj.wantedContractAddress,
+          offerObj.wantedTokenID,
+          offerObj.expires,
           signature
         )
 
