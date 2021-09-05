@@ -44,9 +44,9 @@ function parseOffer(evLog: Log): OfferInterface {
 
   return {
     offerContractAddress,
-    offerTokenID: offerTokenID.toNumber(),
+    offerTokenID: offerTokenID,
     wantedContractAddress,
-    wantedTokenID: wantedTokenID.toNumber(),
+    wantedTokenID: wantedTokenID,
     expires: expires.toNumber(),
     wantedOwner,
   }
